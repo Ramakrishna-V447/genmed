@@ -5,9 +5,9 @@ import { sendOrderConfirmationEmail } from './emailService';
 
 // Keys for localStorage
 const DB_KEYS = {
-  ORDERS: 'upchar_db_orders',
-  MEDICINES: 'upchar_db_medicines',
-  LOGS: 'upchar_db_logs'
+  ORDERS: 'medigen_db_orders',
+  MEDICINES: 'medigen_db_medicines',
+  LOGS: 'medigen_db_logs'
 };
 
 // Simulate network delay

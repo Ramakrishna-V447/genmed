@@ -82,7 +82,7 @@ export const MEDICINES: Medicine[] = [
       { shopName: 'Apollo', price: 42.00, type: 'Branded' },
       { shopName: 'Generickart', price: 18.00, type: 'Generic' },
     ],
-    imageUrl: 'https://images.unsplash.com/photo-1607619056574-7b8d3ee536b2?auto=format&fit=crop&q=80&w=400',
+    imageUrl: 'https://images.unsplash.com/photo-1550572017-edbb97aa1976?auto=format&fit=crop&q=80&w=400',
     dosage: {
       normal: '1 tablet once daily, preferably at night.',
       maxSafe: '10mg per day for adults.',
@@ -175,7 +175,7 @@ export const MEDICINES: Medicine[] = [
       { shopName: 'PharmEasy', price: 18.00, type: 'Branded' },
       { shopName: 'Generic Store', price: 10.00, type: 'Generic' },
     ],
-    imageUrl: 'https://images.unsplash.com/photo-1550572017-edbb97aa1976?auto=format&fit=crop&q=80&w=400',
+    imageUrl: 'https://images.unsplash.com/photo-1584362917165-526a968579e8?auto=format&fit=crop&q=80&w=400',
     dosage: {
       normal: '1 tablet every 8 hours after food.',
       maxSafe: '1200mg-2400mg depending on severity (consult doctor).',
@@ -361,7 +361,7 @@ export const MEDICINES: Medicine[] = [
       { shopName: 'Netmeds', price: 160.00, type: 'Branded' },
       { shopName: 'PharmEasy', price: 150.00, type: 'Branded' },
     ],
-    imageUrl: 'https://images.unsplash.com/photo-1628771065518-0d82f1938462?auto=format&fit=crop&q=80&w=400',
+    imageUrl: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&q=80&w=400',
     dosage: {
       normal: '1 tablet daily at bedtime.',
       maxSafe: '1 tablet daily.',
@@ -392,7 +392,7 @@ export const MEDICINES: Medicine[] = [
       { shopName: 'Apollo', price: 50.00, type: 'Branded' },
       { shopName: '1mg', price: 45.00, type: 'Branded' },
     ],
-    imageUrl: 'https://images.unsplash.com/photo-1550572017-edbb97aa1976?auto=format&fit=crop&q=80&w=400',
+    imageUrl: 'https://images.unsplash.com/photo-1576602976047-174e57a47881?auto=format&fit=crop&q=80&w=400',
     dosage: {
       normal: '1 capsule in the morning before food.',
       maxSafe: 'As prescribed (short term).',
@@ -423,7 +423,7 @@ export const MEDICINES: Medicine[] = [
       { shopName: 'PharmEasy', price: 40.00, type: 'Branded' },
       { shopName: 'Netmeds', price: 38.00, type: 'Branded' },
     ],
-    imageUrl: 'https://images.unsplash.com/photo-1585435557343-3b092031a831?auto=format&fit=crop&q=80&w=400',
+    imageUrl: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&q=80&w=400',
     dosage: {
       normal: '1 tablet 2-3 times a day after food.',
       maxSafe: '150mg per day.',
@@ -485,7 +485,7 @@ export const MEDICINES: Medicine[] = [
       { shopName: 'Apollo', price: 22.00, type: 'Branded' },
       { shopName: '1mg', price: 20.00, type: 'Branded' },
     ],
-    imageUrl: 'https://images.unsplash.com/photo-1576602976047-174e57a47881?auto=format&fit=crop&q=80&w=400',
+    imageUrl: 'https://images.unsplash.com/photo-1585435557343-3b092031a831?auto=format&fit=crop&q=80&w=400',
     dosage: {
       normal: '1 tablet every 8 hours after food.',
       maxSafe: 'As prescribed (short course).',
@@ -516,7 +516,7 @@ export const MEDICINES: Medicine[] = [
       { shopName: 'Netmeds', price: 25.00, type: 'Branded' },
       { shopName: 'PharmEasy', price: 24.00, type: 'Branded' },
     ],
-    imageUrl: 'https://images.unsplash.com/photo-1607619056574-7b8d3ee536b2?auto=format&fit=crop&q=80&w=400',
+    imageUrl: 'https://images.unsplash.com/photo-1550572017-edbb97aa1976?auto=format&fit=crop&q=80&w=400',
     dosage: {
       normal: '1 tablet before meals (15-30 mins).',
       maxSafe: '30mg per day (usually).',
@@ -578,7 +578,7 @@ export const MEDICINES: Medicine[] = [
       { shopName: 'Netmeds', price: 35.00, type: 'Branded' },
       { shopName: 'PharmEasy', price: 32.00, type: 'Branded' },
     ],
-    imageUrl: 'https://images.unsplash.com/photo-1551241855-44243a0e6981?auto=format&fit=crop&q=80&w=400',
+    imageUrl: 'https://images.unsplash.com/photo-1584017911766-d451b3d0e843?auto=format&fit=crop&q=80&w=400',
     dosage: {
       normal: '1 capsule daily.',
       maxSafe: 'Consult doctor for high dosage.',

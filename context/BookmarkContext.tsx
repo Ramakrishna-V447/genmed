@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, PropsWithChildren } from 'react';
 
 interface BookmarkContextType {
@@ -12,7 +13,7 @@ const BookmarkContext = createContext<BookmarkContextType | undefined>(undefined
 export const BookmarkProvider = ({ children }: PropsWithChildren) => {
   const [bookmarks, setBookmarks] = useState<string[]>(() => {
     try {
-      const saved = localStorage.getItem('upchar_bookmarks');
+      const saved = localStorage.getItem('medigen_bookmarks');
       return saved ? JSON.parse(saved) : [];
     } catch (e) {
       console.error("Failed to load bookmarks from localStorage", e);
@@ -22,7 +23,7 @@ export const BookmarkProvider = ({ children }: PropsWithChildren) => {
 
   useEffect(() => {
     try {
-      localStorage.setItem('upchar_bookmarks', JSON.stringify(bookmarks));
+      localStorage.setItem('medigen_bookmarks', JSON.stringify(bookmarks));
     } catch (e) {
       console.error("Failed to save bookmarks to localStorage", e);
     }

@@ -1,3 +1,4 @@
+
 import { GoogleGenAI } from "@google/genai";
 
 const apiKey = process.env.API_KEY || '';
@@ -13,7 +14,7 @@ export const getChatResponse = async (userMessage: string): Promise<string> => {
       model: 'gemini-3-flash-preview',
       contents: userMessage,
       config: {
-        systemInstruction: `You are 'UpcharSahayak', a strict and precise Indian healthcare assistant.
+        systemInstruction: `You are 'MediGen Assistant', a strict and precise Indian healthcare assistant.
         
         CORE INSTRUCTION: Provide ONLY the essential information requested. Do not use filler sentences, pleasantries, or long explanations unless asked.
 

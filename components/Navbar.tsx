@@ -21,7 +21,7 @@ const Navbar: React.FC = () => {
   };
 
   const handleOpenAdminLogin = () => {
-    setAdminEmailPrefill('admin@upchar.com');
+    setAdminEmailPrefill('admin@medigen.com');
     setShowAuthModal(true);
   };
 
@@ -37,8 +37,8 @@ const Navbar: React.FC = () => {
                     <Pill className="h-6 w-6 text-pastel-primary" />
                 </div>
                 <div className="select-none">
-                   <span className="font-bold text-xl text-pastel-primary tracking-tight block leading-none">Upchar<span className="text-pastel-accent">Generic</span></span>
-                   <span className="text-[10px] text-pastel-text tracking-widest uppercase font-medium">Healthcare India</span>
+                   <span className="font-bold text-xl text-pastel-primary tracking-tight block leading-none">Medi<span className="text-pastel-accent">Gen</span></span>
+                   <span className="text-[10px] text-pastel-text tracking-widest uppercase font-medium">Smart Healthcare</span>
                 </div>
              </Link>
           </div>

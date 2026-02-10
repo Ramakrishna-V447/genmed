@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Medicine } from '../types';
 import { 
@@ -60,14 +61,16 @@ const MedicineCard: React.FC<MedicineCardProps> = ({ medicine }) => {
     <Link to={`/medicine/${medicine.id}`} className="block h-full group">
       <div className="bg-white rounded-3xl border border-gray-100 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_24px_rgba(0,0,0,0.06)] transition-all duration-500 transform hover:-translate-y-1 h-full flex flex-col overflow-hidden relative">
         
-        {/* Image Section */}
-        <div className="h-44 overflow-hidden relative bg-gray-50">
+        {/* Image Section - Increased height and prominence */}
+        <div className="h-52 overflow-hidden relative bg-gray-50">
            <img 
              src={medicine.imageUrl} 
              alt={`${medicine.name} - Generic equivalent for ${medicine.brandExample}`}
-             className="w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700 img-soft"
+             className="w-full h-full object-cover opacity-95 group-hover:opacity-100 group-hover:scale-110 transition-transform duration-700 ease-out img-soft"
+             loading="lazy"
            />
-           <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-60"></div>
+           {/* Gradient Overlay for text readability on image */}
+           <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-80 transition-opacity duration-300 group-hover:opacity-60"></div>
            
            <button
              onClick={toggleBookmark}
@@ -76,12 +79,13 @@ const MedicineCard: React.FC<MedicineCardProps> = ({ medicine }) => {
                 ? 'bg-white/90 text-red-400 hover:bg-red-50' 
                 : 'bg-white/60 text-gray-500 hover:text-red-400 hover:bg-white'
              }`}
+             aria-label={saved ? "Remove from bookmarks" : "Add to bookmarks"}
            >
              <Heart size={18} className={saved ? 'fill-current' : ''} />
            </button>
 
            <div className="absolute bottom-3 left-3 flex items-center gap-2 z-10">
-             <span className="text-[11px] font-bold uppercase tracking-wider text-gray-700 bg-white/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/40 flex items-center gap-1.5 shadow-sm">
+             <span className="text-[11px] font-bold uppercase tracking-wider text-gray-700 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/40 flex items-center gap-1.5 shadow-sm">
                 {getIcon()} {medicine.category}
              </span>
            </div>
@@ -96,6 +100,7 @@ const MedicineCard: React.FC<MedicineCardProps> = ({ medicine }) => {
                    : 'bg-pastel-primary text-white hover:bg-pastel-secondary translate-y-10 opacity-0 group-hover:translate-y-0 group-hover:opacity-100'
                }`}
                title="Add to Cart"
+               aria-label="Add to cart"
              >
                {isAdded ? <Check size={18} /> : <ShoppingCart size={18} />}
                {isAdded && <span className="text-xs font-bold pr-1 animate-fade-in">Added</span>}
@@ -108,7 +113,7 @@ const MedicineCard: React.FC<MedicineCardProps> = ({ medicine }) => {
             {medicine.name}
           </h3>
           <p className="text-sm text-gray-400 mb-5 font-medium line-clamp-1">
-             (Ex: {medicine.brandExample})
+             (Generic for {medicine.brandExample})
           </p>
 
           <div className="mt-auto">

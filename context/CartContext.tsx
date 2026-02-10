@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, PropsWithChildren } from 'react';
 import { CartItem, Medicine } from '../types';
 
@@ -16,7 +17,7 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export const CartProvider = ({ children }: PropsWithChildren) => {
   const [items, setItems] = useState<CartItem[]>(() => {
     try {
-      const saved = localStorage.getItem('upchar_cart');
+      const saved = localStorage.getItem('medigen_cart');
       return saved ? JSON.parse(saved) : [];
     } catch (e) {
       return [];
@@ -24,7 +25,7 @@ export const CartProvider = ({ children }: PropsWithChildren) => {
   });
 
   useEffect(() => {
-    localStorage.setItem('upchar_cart', JSON.stringify(items));
+    localStorage.setItem('medigen_cart', JSON.stringify(items));
   }, [items]);
 
   const addToCart = (medicine: Medicine) => {

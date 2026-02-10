@@ -33,7 +33,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialEmail = '
   };
 
   const autofillAdmin = () => {
-      setEmail('admin@upchar.com');
+      setEmail('admin@medigen.com');
       setIsLogin(true);
   };
 
@@ -50,7 +50,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialEmail = '
         <div className="p-8">
           <div className="text-center mb-8">
             <h2 className="text-2xl font-bold text-gray-800">
-              {isLogin ? 'Welcome Back' : 'Join UpcharGeneric'}
+              {isLogin ? 'Welcome Back' : 'Join MediGen'}
             </h2>
             <p className="text-gray-500 mt-2 text-sm">
               {isLogin 
@@ -120,7 +120,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialEmail = '
                <button 
                  onClick={autofillAdmin}
                  className="inline-flex items-center gap-1.5 text-[10px] text-gray-400 bg-gray-50 px-3 py-1 rounded-full hover:bg-gray-100 hover:text-pastel-primary transition-colors cursor-pointer" 
-                 title="Click to autofill admin@upchar.com"
+                 title="Click to autofill admin@medigen.com"
                >
                    <ShieldCheck size={12} /> Admin? Click to autofill
                </button>

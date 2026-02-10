@@ -4,11 +4,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>UpcharGeneric - Compare & Save</title>
+    <title>MediGen - Compare & Save</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script>
       tailwind.config = {
+        darkMode: 'class',
         theme: {
           extend: {
             fontFamily: {
@@ -16,16 +17,16 @@
             },
             colors: {
               pastel: {
-                blue: '#F0F9FF', // Very Light Sky
-                green: '#F1F8E9', // Light Green
-                mint: '#E0F2F1', // Soft Mint
-                primary: '#26A69A', // Soft Teal (Teal 400)
-                secondary: '#80CBC4', // Pale Teal (Teal 200)
-                accent: '#FF8A65', // Soft Coral (Deep Orange 300)
-                text: '#546E7A', // Blue Grey 600 - Softer text
-                dark: '#37474F', // Blue Grey 800 - Headings
-                surface: '#FFFFFF',
-                background: '#FAFAFA', // Off-white background
+                blue: '#E0F2FE', // Sky 100 - Light Blue Background
+                green: '#CCFBF1', // Teal 100 - Light Teal Background
+                mint: '#F0FDFA', // Teal 50 - Very Light Teal/White
+                primary: '#0D9488', // Teal 600 - Main Brand Color (Teal)
+                secondary: '#38BDF8', // Sky 400 - Secondary Brand Color (Light Blue)
+                accent: '#0EA5E9', // Sky 500 - Vibrant Light Blue Accent
+                text: '#475569', // Slate 600 - Grey Text
+                dark: '#1E293B', // Slate 800 - Dark Grey Headings
+                surface: '#FFFFFF', // White
+                background: '#F8FAFC', // Slate 50 - Light Grey Background
               }
             },
             animation: {
@@ -66,23 +67,23 @@
     width: 8px;
   }
   ::-webkit-scrollbar-track {
-    background: #FAFAFA;
+    background: #F8FAFC;
   }
   ::-webkit-scrollbar-thumb {
-    background: #CFD8DC;
+    background: #CBD5E1;
     border-radius: 4px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #B0BEC5;
+    background: #94A3B8;
   }
   
   /* Soft Image Filter */
   .img-soft {
-    filter: brightness(1.05) saturate(0.85) contrast(0.95);
+    filter: brightness(1.05) saturate(0.95);
   }
 </style>
 </head>
-  <body class="bg-pastel-background text-pastel-text antialiased selection:bg-pastel-secondary selection:text-white">
+  <body class="bg-pastel-background text-pastel-text antialiased selection:bg-pastel-primary selection:text-white dark:bg-slate-900 dark:text-slate-100 transition-colors duration-300">
     <div id="root"></div>
   </body>
 </html>

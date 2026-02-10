@@ -10,7 +10,7 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
   const login = (email: string, name: string) => {
     // Simulate login & Role assignment
     // In a real app, this would come from the backend token
-    const role = email.toLowerCase() === 'admin@upchar.com' ? 'admin' : 'user';
+    const role = email.toLowerCase() === 'admin@medigen.com' ? 'admin' : 'user';
     setUser({ email, name, role });
   };
 

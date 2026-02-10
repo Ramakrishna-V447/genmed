@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send, Bot, Loader2 } from 'lucide-react';
 import { getChatResponse } from '../services/geminiService';
@@ -61,7 +62,7 @@ const ChatBot: React.FC = () => {
           <div className="bg-pastel-primary p-4 flex justify-between items-center text-white">
             <div className="flex items-center gap-2">
               <Bot size={20} />
-              <span className="font-bold">Upchar Assistant</span>
+              <span className="font-bold">MediGen Assistant</span>
             </div>
             <button onClick={() => setIsOpen(false)} className="hover:bg-white/20 p-1 rounded">
               <X size={18} />
