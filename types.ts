@@ -15,6 +15,8 @@ export interface Medicine {
   description: string;
   genericPrice: number;
   brandedPrice: number;
+  stock: number;
+  expiryDate: string;
   marketRates: MarketRate[]; // Prices at different shops
   imageUrl: string;
   dosage: {

@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React, { PropsWithChildren } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import ChatBot from './components/ChatBot';
@@ -16,7 +15,7 @@ import { BookmarkProvider } from './context/BookmarkContext';
 import { CartProvider } from './context/CartContext';
 
 // Layout wrapper to hide Navbar/ChatBot on Admin pages
-const MainLayout = ({ children }: { children: React.ReactNode }) => (
+const MainLayout: React.FC<PropsWithChildren> = ({ children }) => (
   <>
     <Navbar />
     <main>

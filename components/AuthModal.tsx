@@ -1,18 +1,26 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Lock, Mail, User as UserIcon, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
+  initialEmail?: string;
 }
 
-const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
+const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialEmail = '' }) => {
   const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(initialEmail);
   const [name, setName] = useState('');
   const { login } = useAuth();
+
+  useEffect(() => {
+    if (isOpen) {
+      setEmail(initialEmail || '');
+    }
+  }, [isOpen, initialEmail]);
 
   if (!isOpen) return null;
 
@@ -24,12 +32,17 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     onClose();
   };
 
-  return (
+  const autofillAdmin = () => {
+      setEmail('admin@upchar.com');
+      setIsLogin(true);
+  };
+
+  return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-slide-up relative">
         <button 
           onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors z-10"
         >
           <X size={24} />
         </button>
@@ -103,10 +116,14 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             </p>
             
             {/* Admin Hint */}
-            <div className="mt-6 pt-4 border-t border-gray-100">
-               <div className="inline-flex items-center gap-1.5 text-[10px] text-gray-400 bg-gray-50 px-3 py-1 rounded-full cursor-help" title="Use email: admin@upchar.com">
-                   <ShieldCheck size={12} /> Admin? Use admin email
-               </div>
+            <div className="mt-6 pt-4 border-t border-gray-100 flex justify-center">
+               <button 
+                 onClick={autofillAdmin}
+                 className="inline-flex items-center gap-1.5 text-[10px] text-gray-400 bg-gray-50 px-3 py-1 rounded-full hover:bg-gray-100 hover:text-pastel-primary transition-colors cursor-pointer" 
+                 title="Click to autofill admin@upchar.com"
+               >
+                   <ShieldCheck size={12} /> Admin? Click to autofill
+               </button>
             </div>
           </div>
         </div>
@@ -115,7 +132,8 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
           <p className="text-xs text-gray-400">Secure Healthcare Platform • India</p>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

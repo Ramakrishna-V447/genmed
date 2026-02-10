@@ -1,37 +1,70 @@
 
-import React from 'react';
-import { Pill, LogOut, Heart, ShoppingCart, MapPin, Truck, ShieldCheck } from 'lucide-react';
+import React, { useState } from 'react';
+import { Pill, LogOut, Heart, ShoppingCart, MapPin, Truck, ShieldCheck, LayoutDashboard, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useBookmarks } from '../context/BookmarkContext';
 import { useCart } from '../context/CartContext';
 import { Link, useLocation } from 'react-router-dom';
+import AuthModal from './AuthModal';
 
 const Navbar: React.FC = () => {
   const { isAuthenticated, user, logout } = useAuth();
   const { bookmarks } = useBookmarks();
   const { itemCount } = useCart();
   const location = useLocation();
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [adminEmailPrefill, setAdminEmailPrefill] = useState('');
+
+  const handleOpenLogin = () => {
+    setAdminEmailPrefill('');
+    setShowAuthModal(true);
+  };
+
+  const handleOpenAdminLogin = () => {
+    setAdminEmailPrefill('admin@upchar.com');
+    setShowAuthModal(true);
+  };
 
   return (
     <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-100 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.05)]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-20 items-center">
-          <div className="flex-shrink-0 flex items-center cursor-pointer">
+        <div className="relative flex justify-between h-20 items-center">
+          
+          {/* Left: Logo */}
+          <div className="flex-shrink-0 flex items-center cursor-pointer z-20">
              <Link to="/" className="flex items-center gap-3 group">
                 <div className="bg-pastel-mint p-2.5 rounded-xl group-hover:bg-pastel-secondary/20 transition-colors">
                     <Pill className="h-6 w-6 text-pastel-primary" />
                 </div>
-                <div>
+                <div className="select-none">
                    <span className="font-bold text-xl text-pastel-primary tracking-tight block leading-none">Upchar<span className="text-pastel-accent">Generic</span></span>
                    <span className="text-[10px] text-pastel-text tracking-widest uppercase font-medium">Healthcare India</span>
                 </div>
              </Link>
           </div>
           
-          <div className="flex items-center gap-4 sm:gap-8">
+          {/* Right: User Actions */}
+          <div className="flex items-center gap-4 sm:gap-6 lg:gap-8 z-20">
+            
+            {/* Admin Block - Visible Only to Admins */}
+            {isAuthenticated && user?.role === 'admin' && (
+              <Link 
+                to="/admin" 
+                className={`hidden lg:flex items-center gap-2 text-sm font-bold transition-all ${
+                    location.pathname === '/admin'
+                    ? 'text-white bg-gray-800 px-4 py-2 rounded-full shadow-lg'
+                    : 'text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-full'
+                }`}
+                title="Admin Dashboard"
+              >
+                <LayoutDashboard size={18} />
+                <span>Admin Panel</span>
+              </Link>
+            )}
+
             <Link 
                 to="/stores" 
-                className={`hidden md:flex items-center gap-2 text-sm font-medium transition-all ${
+                className={`hidden lg:flex items-center gap-2 text-sm font-medium transition-all ${
                     location.pathname === '/stores' 
                     ? 'text-pastel-primary bg-pastel-mint/50 px-3 py-1.5 rounded-full' 
                     : 'text-gray-400 hover:text-pastel-primary'
@@ -50,7 +83,7 @@ const Navbar: React.FC = () => {
                 }`}
             >
                 <Truck size={18} />
-                <span>Track</span>
+                <span className="hidden lg:inline">Track</span>
             </Link>
 
             <Link 
@@ -89,15 +122,20 @@ const Navbar: React.FC = () => {
 
             {isAuthenticated ? (
               <div className="flex items-center gap-4 pl-4 border-l border-gray-100">
-                 {user?.role === 'admin' && (
-                     <Link to="/admin" className="text-gray-500 hover:text-pastel-primary" title="Admin Dashboard">
-                        <ShieldCheck size={20} />
-                     </Link>
-                 )}
-                 <div className="hidden lg:block text-right">
+                 {/* Mobile Admin Link */}
+                 <div className="md:hidden">
+                    {user?.role === 'admin' && (
+                        <Link to="/admin" className="text-gray-600 hover:text-pastel-primary">
+                            <LayoutDashboard size={20} />
+                        </Link>
+                    )}
+                 </div>
+
+                 <div className="hidden xl:block text-right">
                     <p className="text-xs text-gray-400 font-medium">Welcome,</p>
                     <p className="text-sm font-bold text-gray-700">{user?.name.split(' ')[0]}</p>
                  </div>
+                 
                  <button 
                    onClick={logout}
                    className="flex items-center gap-2 p-2 sm:px-4 sm:py-2 text-sm font-medium text-gray-500 bg-gray-50 hover:bg-red-50 hover:text-red-400 rounded-full transition-all"
@@ -108,13 +146,34 @@ const Navbar: React.FC = () => {
                  </button>
               </div>
             ) : (
-              <div className="hidden sm:block text-sm font-medium text-pastel-primary/80 bg-pastel-mint/30 px-4 py-2 rounded-full">
-                Login for Prices
+              <div className="flex items-center gap-2">
+                 {/* Admin Trigger Button for Guests */}
+                 <button 
+                    onClick={handleOpenAdminLogin}
+                    className="text-gray-300 hover:text-pastel-primary p-2 transition-colors"
+                    title="Admin Login Shortcut"
+                 >
+                    <ShieldCheck size={20} />
+                 </button>
+
+                 <button
+                    onClick={handleOpenLogin}
+                    className="flex items-center gap-2 text-sm font-bold text-white bg-pastel-primary hover:bg-pastel-secondary px-5 py-2.5 rounded-full shadow-lg shadow-teal-500/20 transition-all transform hover:scale-105"
+                 >
+                    <User size={18} /> Login
+                 </button>
               </div>
             )}
           </div>
         </div>
       </div>
+      
+      {/* Global Auth Modal */}
+      <AuthModal 
+        isOpen={showAuthModal} 
+        onClose={() => setShowAuthModal(false)} 
+        initialEmail={adminEmailPrefill}
+      />
     </nav>
   );
 };

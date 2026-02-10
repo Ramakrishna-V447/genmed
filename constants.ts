@@ -1,3 +1,4 @@
+
 import { Medicine, MedicineCategory } from './types';
 
 export const MEDICINES: Medicine[] = [
@@ -11,6 +12,8 @@ export const MEDICINES: Medicine[] = [
     description: 'The most common medicine in India for fever and body ache. Safe for most adults when taken correctly.',
     genericPrice: 10.50,
     brandedPrice: 30.00,
+    stock: 150,
+    expiryDate: '2025-12-31',
     marketRates: [
       { shopName: 'Jan Aushadhi (Govt)', price: 10.50, type: 'Generic' },
       { shopName: 'Local Chemist', price: 30.00, type: 'Branded' },
@@ -40,6 +43,8 @@ export const MEDICINES: Medicine[] = [
     description: 'Effective for acidity and gas issues, often prescribed for acid reflux and stomach ulcers.',
     genericPrice: 42.00,
     brandedPrice: 155.00,
+    stock: 120,
+    expiryDate: '2025-10-15',
     marketRates: [
       { shopName: 'Jan Aushadhi (Govt)', price: 42.00, type: 'Generic' },
       { shopName: 'Local Chemist', price: 155.00, type: 'Branded' },
@@ -69,6 +74,8 @@ export const MEDICINES: Medicine[] = [
     description: 'Non-drowsy anti-allergic for seasonal allergies, hives, and skin rashes.',
     genericPrice: 15.00,
     brandedPrice: 45.00,
+    stock: 200,
+    expiryDate: '2026-01-20',
     marketRates: [
       { shopName: 'Jan Aushadhi', price: 15.00, type: 'Generic' },
       { shopName: 'Local Pharmacy', price: 45.00, type: 'Branded' },
@@ -98,6 +105,8 @@ export const MEDICINES: Medicine[] = [
     description: 'A macrolide antibiotic used for respiratory, throat, and skin infections.',
     genericPrice: 60.00,
     brandedPrice: 120.00,
+    stock: 50,
+    expiryDate: '2024-12-01',
     marketRates: [
       { shopName: 'Jan Aushadhi', price: 60.00, type: 'Generic' },
       { shopName: 'Local Chemist', price: 120.00, type: 'Branded' },
@@ -127,6 +136,8 @@ export const MEDICINES: Medicine[] = [
     description: 'Standard first-line medication for the treatment of type 2 diabetes mellitus.',
     genericPrice: 18.00,
     brandedPrice: 45.00,
+    stock: 180,
+    expiryDate: '2025-06-30',
     marketRates: [
       { shopName: 'Jan Aushadhi', price: 18.00, type: 'Generic' },
       { shopName: 'Local Chemist', price: 45.00, type: 'Branded' },
@@ -156,6 +167,8 @@ export const MEDICINES: Medicine[] = [
     description: 'A powerful painkiller and anti-inflammatory drug for muscles and joints.',
     genericPrice: 8.00,
     brandedPrice: 20.00,
+    stock: 100,
+    expiryDate: '2025-08-15',
     marketRates: [
       { shopName: 'Jan Aushadhi', price: 8.00, type: 'Generic' },
       { shopName: 'Local Chemist', price: 20.00, type: 'Branded' },
@@ -185,6 +198,8 @@ export const MEDICINES: Medicine[] = [
     description: 'A widely used penicillin-type antibiotic for various bacterial infections.',
     genericPrice: 45.00,
     brandedPrice: 110.00,
+    stock: 60,
+    expiryDate: '2025-02-28',
     marketRates: [
       { shopName: 'Jan Aushadhi', price: 45.00, type: 'Generic' },
       { shopName: 'Local Chemist', price: 110.00, type: 'Branded' },
@@ -214,6 +229,8 @@ export const MEDICINES: Medicine[] = [
     description: 'Statin medication used to lower bad cholesterol (LDL) and triglycerides.',
     genericPrice: 35.00,
     brandedPrice: 85.00,
+    stock: 90,
+    expiryDate: '2026-03-10',
     marketRates: [
       { shopName: 'Jan Aushadhi', price: 35.00, type: 'Generic' },
       { shopName: 'Local Chemist', price: 85.00, type: 'Branded' },
@@ -243,6 +260,8 @@ export const MEDICINES: Medicine[] = [
     description: 'Essential supplement for strong bones, teeth and joints.',
     genericPrice: 55.00,
     brandedPrice: 125.00,
+    stock: 140,
+    expiryDate: '2025-11-20',
     marketRates: [
       { shopName: 'Jan Aushadhi', price: 55.00, type: 'Generic' },
       { shopName: 'Local Chemist', price: 125.00, type: 'Branded' },
@@ -272,6 +291,8 @@ export const MEDICINES: Medicine[] = [
     description: 'Multivitamin supplement for overall health, immunity and recovery.',
     genericPrice: 25.00,
     brandedPrice: 50.00,
+    stock: 200,
+    expiryDate: '2025-09-05',
     marketRates: [
       { shopName: 'Jan Aushadhi', price: 25.00, type: 'Generic' },
       { shopName: 'Local Chemist', price: 50.00, type: 'Branded' },
@@ -301,6 +322,8 @@ export const MEDICINES: Medicine[] = [
     description: 'Used to treat high blood pressure (hypertension) and reduce cardiovascular risk.',
     genericPrice: 25.00,
     brandedPrice: 120.00,
+    stock: 80,
+    expiryDate: '2025-12-12',
     marketRates: [
       { shopName: 'Jan Aushadhi', price: 25.00, type: 'Generic' },
       { shopName: 'Local Chemist', price: 120.00, type: 'Branded' },
@@ -330,6 +353,8 @@ export const MEDICINES: Medicine[] = [
     description: 'Combination medicine for treating symptoms of allergic rhinitis and asthma.',
     genericPrice: 40.00,
     brandedPrice: 180.00,
+    stock: 75,
+    expiryDate: '2025-07-22',
     marketRates: [
       { shopName: 'Jan Aushadhi', price: 40.00, type: 'Generic' },
       { shopName: 'Local Chemist', price: 180.00, type: 'Branded' },
@@ -359,6 +384,8 @@ export const MEDICINES: Medicine[] = [
     description: 'Reduces the amount of acid your stomach makes. Treats heartburn and indigestion.',
     genericPrice: 15.00,
     brandedPrice: 55.00,
+    stock: 130,
+    expiryDate: '2026-01-01',
     marketRates: [
       { shopName: 'Jan Aushadhi', price: 15.00, type: 'Generic' },
       { shopName: 'Local Chemist', price: 55.00, type: 'Branded' },
@@ -388,6 +415,8 @@ export const MEDICINES: Medicine[] = [
     description: 'Potent non-steroidal anti-inflammatory drug (NSAID) for pain relief.',
     genericPrice: 10.00,
     brandedPrice: 45.00,
+    stock: 95,
+    expiryDate: '2025-05-15',
     marketRates: [
       { shopName: 'Jan Aushadhi', price: 10.00, type: 'Generic' },
       { shopName: 'Local Chemist', price: 45.00, type: 'Branded' },
@@ -417,6 +446,8 @@ export const MEDICINES: Medicine[] = [
     description: 'Calcium channel blocker used to control high blood pressure.',
     genericPrice: 8.00,
     brandedPrice: 35.00,
+    stock: 110,
+    expiryDate: '2026-02-14',
     marketRates: [
       { shopName: 'Jan Aushadhi', price: 8.00, type: 'Generic' },
       { shopName: 'Local Chemist', price: 35.00, type: 'Branded' },
@@ -446,6 +477,8 @@ export const MEDICINES: Medicine[] = [
     description: 'Antibiotic effective against anaerobic bacteria and certain parasites.',
     genericPrice: 12.00,
     brandedPrice: 25.00,
+    stock: 65,
+    expiryDate: '2025-04-10',
     marketRates: [
       { shopName: 'Jan Aushadhi', price: 12.00, type: 'Generic' },
       { shopName: 'Local Chemist', price: 25.00, type: 'Branded' },
@@ -475,6 +508,8 @@ export const MEDICINES: Medicine[] = [
     description: 'Prokinetic medicine used to treat nausea and vomiting.',
     genericPrice: 10.00,
     brandedPrice: 30.00,
+    stock: 85,
+    expiryDate: '2025-10-30',
     marketRates: [
       { shopName: 'Jan Aushadhi', price: 10.00, type: 'Generic' },
       { shopName: 'Local Chemist', price: 30.00, type: 'Branded' },
@@ -504,6 +539,8 @@ export const MEDICINES: Medicine[] = [
     description: 'Combination medicine used for pain relief and fever reduction.',
     genericPrice: 25.00,
     brandedPrice: 65.00,
+    stock: 120,
+    expiryDate: '2025-09-18',
     marketRates: [
       { shopName: 'Jan Aushadhi', price: 25.00, type: 'Generic' },
       { shopName: 'Local Chemist', price: 65.00, type: 'Branded' },
@@ -533,6 +570,8 @@ export const MEDICINES: Medicine[] = [
     description: 'Fat-soluble antioxidant vitamin supplement.',
     genericPrice: 18.00,
     brandedPrice: 38.00,
+    stock: 250,
+    expiryDate: '2026-06-01',
     marketRates: [
       { shopName: 'Jan Aushadhi', price: 18.00, type: 'Generic' },
       { shopName: 'Local Chemist', price: 38.00, type: 'Branded' },
@@ -562,6 +601,8 @@ export const MEDICINES: Medicine[] = [
     description: 'Active form of Vitamin B12 essential for nerve function and red blood cell formation.',
     genericPrice: 45.00,
     brandedPrice: 140.00,
+    stock: 100,
+    expiryDate: '2025-07-07',
     marketRates: [
       { shopName: 'Jan Aushadhi', price: 45.00, type: 'Generic' },
       { shopName: 'Local Chemist', price: 140.00, type: 'Branded' },
