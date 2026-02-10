@@ -1,3 +1,4 @@
+
 export interface MarketRate {
   shopName: string;
   price: number;
@@ -48,6 +49,7 @@ export enum MedicineCategory {
 export interface User {
   email: string;
   name: string;
+  role: 'user' | 'admin';
 }
 
 export interface AuthState {
@@ -82,4 +84,12 @@ export interface Order {
   customerEmail: string;
   createdAt: number;
   deliveryTime: string;
+}
+
+export interface ActivityLog {
+  id: string;
+  action: string;
+  admin: string;
+  timestamp: number;
+  details: string;
 }

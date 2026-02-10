@@ -1,5 +1,6 @@
+
 import React, { useState } from 'react';
-import { X, Lock, Mail, User as UserIcon } from 'lucide-react';
+import { X, Lock, Mail, User as UserIcon, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 interface AuthModalProps {
@@ -100,6 +101,13 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 {isLogin ? 'Sign Up' : 'Login'}
               </button>
             </p>
+            
+            {/* Admin Hint */}
+            <div className="mt-6 pt-4 border-t border-gray-100">
+               <div className="inline-flex items-center gap-1.5 text-[10px] text-gray-400 bg-gray-50 px-3 py-1 rounded-full cursor-help" title="Use email: admin@upchar.com">
+                   <ShieldCheck size={12} /> Admin? Use admin email
+               </div>
+            </div>
           </div>
         </div>
         

@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, ReactNode, PropsWithChildren } from 'react';
 import { AuthState, User } from '../types';
 
@@ -7,8 +8,10 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
   const [user, setUser] = useState<User | null>(null);
 
   const login = (email: string, name: string) => {
-    // Simulate login
-    setUser({ email, name });
+    // Simulate login & Role assignment
+    // In a real app, this would come from the backend token
+    const role = email.toLowerCase() === 'admin@upchar.com' ? 'admin' : 'user';
+    setUser({ email, name, role });
   };
 
   const logout = () => {

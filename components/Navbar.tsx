@@ -1,5 +1,6 @@
+
 import React from 'react';
-import { Pill, LogOut, Heart, ShoppingCart, MapPin, Truck } from 'lucide-react';
+import { Pill, LogOut, Heart, ShoppingCart, MapPin, Truck, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useBookmarks } from '../context/BookmarkContext';
 import { useCart } from '../context/CartContext';
@@ -88,6 +89,11 @@ const Navbar: React.FC = () => {
 
             {isAuthenticated ? (
               <div className="flex items-center gap-4 pl-4 border-l border-gray-100">
+                 {user?.role === 'admin' && (
+                     <Link to="/admin" className="text-gray-500 hover:text-pastel-primary" title="Admin Dashboard">
+                        <ShieldCheck size={20} />
+                     </Link>
+                 )}
                  <div className="hidden lg:block text-right">
                     <p className="text-xs text-gray-400 font-medium">Welcome,</p>
                     <p className="text-sm font-bold text-gray-700">{user?.name.split(' ')[0]}</p>
