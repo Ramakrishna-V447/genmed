@@ -1,0 +1,114 @@
+import React, { useState } from 'react';
+import { X, Lock, Mail, User as UserIcon } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+
+interface AuthModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
+  const [isLogin, setIsLogin] = useState(true);
+  const [email, setEmail] = useState('');
+  const [name, setName] = useState('');
+  const { login } = useAuth();
+
+  if (!isOpen) return null;
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Simulate auth
+    const userName = name || email.split('@')[0];
+    login(email, userName);
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-slide-up relative">
+        <button 
+          onClick={onClose}
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+        >
+          <X size={24} />
+        </button>
+        
+        <div className="p-8">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-bold text-gray-800">
+              {isLogin ? 'Welcome Back' : 'Join UpcharGeneric'}
+            </h2>
+            <p className="text-gray-500 mt-2 text-sm">
+              {isLogin 
+                ? 'Login to view medicine prices and savings.' 
+                : 'Create an account to start saving on medicines.'}
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {!isLogin && (
+              <div className="relative">
+                <UserIcon className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Full Name"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pastel-primary focus:border-transparent outline-none transition-all"
+                />
+              </div>
+            )}
+            
+            <div className="relative">
+              <Mail className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" />
+              <input
+                type="email"
+                placeholder="Email Address"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pastel-primary focus:border-transparent outline-none transition-all"
+              />
+            </div>
+
+            <div className="relative">
+              <Lock className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" />
+              <input
+                type="password"
+                placeholder="Password"
+                required
+                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pastel-primary focus:border-transparent outline-none transition-all"
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="w-full bg-pastel-primary hover:bg-pastel-secondary text-white font-bold py-3.5 rounded-xl shadow-lg shadow-teal-500/20 transition-all transform hover:scale-[1.02]"
+            >
+              {isLogin ? 'Login to Continue' : 'Create Account'}
+            </button>
+          </form>
+
+          <div className="mt-6 text-center">
+            <p className="text-sm text-gray-600">
+              {isLogin ? "Don't have an account? " : "Already have an account? "}
+              <button 
+                onClick={() => setIsLogin(!isLogin)}
+                className="text-pastel-primary font-bold hover:underline"
+              >
+                {isLogin ? 'Sign Up' : 'Login'}
+              </button>
+            </p>
+          </div>
+        </div>
+        
+        <div className="bg-gray-50 py-3 text-center border-t border-gray-100">
+          <p className="text-xs text-gray-400">Secure Healthcare Platform • India</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AuthModal;

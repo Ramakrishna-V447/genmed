@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>UpcharGeneric - Compare & Save</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Outfit', 'sans-serif'],
+            },
+            colors: {
+              pastel: {
+                blue: '#F0F9FF', // Very Light Sky
+                green: '#F1F8E9', // Light Green
+                mint: '#E0F2F1', // Soft Mint
+                primary: '#26A69A', // Soft Teal (Teal 400)
+                secondary: '#80CBC4', // Pale Teal (Teal 200)
+                accent: '#FF8A65', // Soft Coral (Deep Orange 300)
+                text: '#546E7A', // Blue Grey 600 - Softer text
+                dark: '#37474F', // Blue Grey 800 - Headings
+                surface: '#FFFFFF',
+                background: '#FAFAFA', // Off-white background
+              }
+            },
+            animation: {
+              'fade-in': 'fadeIn 0.6s ease-out',
+              'slide-up': 'slideUp 0.6s ease-out',
+              'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            },
+            keyframes: {
+              fadeIn: {
+                '0%': { opacity: '0' },
+                '100%': { opacity: '1' },
+              },
+              slideUp: {
+                '0%': { transform: 'translateY(30px)', opacity: '0' },
+                '100%': { transform: 'translateY(0)', opacity: '1' },
+              }
+            }
+          },
+        },
+      }
+    </script>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "react": "https://esm.sh/react@^19.2.4",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "@google/genai": "https://esm.sh/@google/genai@^1.40.0",
+    "lucide-react": "https://esm.sh/lucide-react@^0.563.0",
+    "react-router-dom": "https://esm.sh/react-router-dom@^7.13.0"
+  }
+}
+</script>
+<style>
+  /* Custom Scrollbar for lighter look */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #FAFAFA;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #CFD8DC;
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #B0BEC5;
+  }
+  
+  /* Soft Image Filter */
+  .img-soft {
+    filter: brightness(1.05) saturate(0.85) contrast(0.95);
+  }
+</style>
+</head>
+  <body class="bg-pastel-background text-pastel-text antialiased selection:bg-pastel-secondary selection:text-white">
+    <div id="root"></div>
+  </body>
+</html>
