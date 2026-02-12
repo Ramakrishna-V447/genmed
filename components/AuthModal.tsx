@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Lock, Mail, User as UserIcon, ShieldCheck } from 'lucide-react';
+import { X, Lock, Mail, User as UserIcon, ShieldCheck, Loader2, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 interface AuthModalProps {
@@ -13,28 +13,57 @@ interface AuthModalProps {
 const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialEmail = '' }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState(initialEmail);
+  const [password, setPassword] = useState('');
   const [name, setName] = useState('');
-  const { login } = useAuth();
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  
+  const { login, register } = useAuth();
 
   useEffect(() => {
     if (isOpen) {
       setEmail(initialEmail || '');
+      setPassword('');
+      setName('');
+      setError('');
     }
   }, [isOpen, initialEmail]);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulate auth
-    const userName = name || email.split('@')[0];
-    login(email, userName);
-    onClose();
+    setError('');
+    setLoading(true);
+
+    try {
+        if (isLogin) {
+            const res = await login(email, password);
+            if (res.success) {
+                onClose();
+            } else {
+                setError(res.error || "Login failed");
+            }
+        } else {
+            const res = await register(name, email, password);
+            if (res.success) {
+                onClose();
+            } else {
+                setError(res.error || "Registration failed");
+            }
+        }
+    } catch (err) {
+        setError("An unexpected error occurred.");
+    } finally {
+        setLoading(false);
+    }
   };
 
   const autofillAdmin = () => {
       setEmail('admin@medigen.com');
+      setPassword('admin'); // prefill the seeded password
       setIsLogin(true);
+      setError('');
   };
 
   return createPortal(
@@ -58,6 +87,12 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialEmail = '
                 : 'Create an account to start saving on medicines.'}
             </p>
           </div>
+
+          {error && (
+              <div className="mb-4 p-3 bg-red-50 text-red-500 text-sm rounded-xl flex items-center gap-2">
+                  <AlertCircle size={16} /> {error}
+              </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {!isLogin && (
@@ -92,15 +127,19 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialEmail = '
                 type="password"
                 placeholder="Password"
                 required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pastel-primary focus:border-transparent outline-none transition-all"
               />
             </div>
 
             <button
               type="submit"
-              className="w-full bg-pastel-primary hover:bg-pastel-secondary text-white font-bold py-3.5 rounded-xl shadow-lg shadow-teal-500/20 transition-all transform hover:scale-[1.02]"
+              disabled={loading}
+              className="w-full bg-pastel-primary hover:bg-pastel-secondary text-white font-bold py-3.5 rounded-xl shadow-lg shadow-teal-500/20 transition-all transform hover:scale-[1.02] flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
             >
-              {isLogin ? 'Login to Continue' : 'Create Account'}
+              {loading && <Loader2 className="animate-spin" size={20} />}
+              {loading ? 'Processing...' : (isLogin ? 'Login to Continue' : 'Create Account')}
             </button>
           </form>
 
@@ -108,7 +147,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialEmail = '
             <p className="text-sm text-gray-600">
               {isLogin ? "Don't have an account? " : "Already have an account? "}
               <button 
-                onClick={() => setIsLogin(!isLogin)}
+                onClick={() => { setIsLogin(!isLogin); setError(''); }}
                 className="text-pastel-primary font-bold hover:underline"
               >
                 {isLogin ? 'Sign Up' : 'Login'}

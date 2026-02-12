@@ -1,9 +1,10 @@
 
 import { Order } from '../types';
+import { db } from './db';
 
 /**
  * Simulates a backend email service using an HTML template.
- * In a real app, this would be an API call to a Node.js server using Nodemailer or SendGrid.
+ * Saves the email content to the local database instead of sending via SMTP.
  */
 export const sendOrderConfirmationEmail = async (order: Order): Promise<boolean> => {
   // Simulate network latency for email server
@@ -24,7 +25,6 @@ export const sendOrderConfirmationEmail = async (order: Order): Promise<boolean>
   `).join('');
 
   // 2. Create HTML Template
-  // Using hex codes: Primary #0D9488 (Teal), Secondary #38BDF8 (Light Blue), Text #475569 (Grey)
   const emailTemplate = `
     <!DOCTYPE html>
     <html>
@@ -92,11 +92,16 @@ export const sendOrderConfirmationEmail = async (order: Order): Promise<boolean>
     </html>
   `;
 
-  // 3. Log to Console (Simulating Email Sending)
-  console.group('%c📧 [Backend Simulation] Sending Order Confirmation Email', 'color: #0D9488; font-weight: bold; font-size: 14px;');
+  const subject = `Your Medicine Order is Confirmed – Order #${id}`;
+
+  // 3. Save to Database
+  await db.saveEmail(customerEmail, subject, emailTemplate);
+
+  // 4. Log to Console for Dev
+  console.group('%c📧 [DB Email Service] Email Saved', 'color: #0D9488; font-weight: bold; font-size: 14px;');
   console.log(`%cTo: %c${customerEmail}`, 'color: gray', 'color: #333; font-weight: bold');
-  console.log(`%cSubject: %cYour Medicine Order is Confirmed – Order #${id}`, 'color: gray', 'color: #333; font-weight: bold');
-  console.log('%cTemplate Preview (HTML):', 'color: gray', '\n' + emailTemplate.replace(/\s+/g, ' ').substring(0, 150) + '...');
+  console.log(`%cSubject: %c${subject}`, 'color: gray', 'color: #333; font-weight: bold');
+  console.log('%cStatus: Saved to medigen_db_emails', 'color: green');
   console.groupEnd();
 
   return true;

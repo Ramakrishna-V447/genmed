@@ -49,15 +49,19 @@ export enum MedicineCategory {
 }
 
 export interface User {
+  id: string;
   email: string;
   name: string;
   role: 'user' | 'admin';
+  password?: string; // Only used internally in DB, stripped for frontend context
+  createdAt: number;
 }
 
 export interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
-  login: (email: string, name: string) => void;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  register: (name: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
 }
 
@@ -94,4 +98,13 @@ export interface ActivityLog {
   admin: string;
   timestamp: number;
   details: string;
+}
+
+export interface EmailLog {
+  id: string;
+  to: string;
+  subject: string;
+  body: string; // HTML content
+  sentAt: number;
+  status: 'sent' | 'failed';
 }
