@@ -8,7 +8,10 @@ const DB_KEYS = {
   ORDERS: 'medigen_db_orders',
   MEDICINES: 'medigen_db_medicines',
   LOGS: 'medigen_db_logs',
-  EMAILS: 'medigen_db_emails'
+  EMAILS: 'medigen_db_emails',
+  // Base keys for dynamic user data
+  CART_PREFIX: 'medigen_cart_',
+  BOOKMARK_PREFIX: 'medigen_bookmarks_'
 };
 
 // Simulate network delay
@@ -61,6 +64,11 @@ export const db = {
       await delay(800);
       const users = getStorage<User[]>(DB_KEYS.USERS, []);
       
+      // Strict check: Block admin email registration
+      if (email.toLowerCase() === 'admin@medigen.com') {
+          throw new Error("This email is reserved for administrative access.");
+      }
+
       if (users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
           throw new Error("User already exists with this email.");
       }
@@ -174,7 +182,6 @@ export const db = {
     setStorage(DB_KEYS.ORDERS, orders);
 
     // Import here to avoid circular dependency issues if possible, or handle externally
-    // For this structure, we call the email service which calls db.saveEmail
     const { sendOrderConfirmationEmail } = await import('./emailService');
     sendOrderConfirmationEmail(newOrder).catch(err => console.error("Failed to process email", err));
     
@@ -225,7 +232,6 @@ export const db = {
       };
       emails.push(newEmail);
       setStorage(DB_KEYS.EMAILS, emails);
-      // await db.logActivity('Email Sent', `Email sent to ${to}: ${subject}`);
   },
 
   getEmails: async (): Promise<EmailLog[]> => {
@@ -245,12 +251,34 @@ export const db = {
       details
     };
     logs.unshift(newLog);
-    if (logs.length > 100) logs.pop(); // Increased log retention
+    if (logs.length > 100) logs.pop();
     setStorage(DB_KEYS.LOGS, logs);
   },
 
   getLogs: async (): Promise<ActivityLog[]> => {
     await delay(300);
     return getStorage<ActivityLog[]>(DB_KEYS.LOGS, []);
+  },
+
+  // --- CART & BOOKMARKS ---
+
+  getCart: (userId: string | null): CartItem[] => {
+    const key = userId ? `${DB_KEYS.CART_PREFIX}${userId}` : 'medigen_cart_guest';
+    return getStorage<CartItem[]>(key, []);
+  },
+
+  saveCart: (userId: string | null, items: CartItem[]): void => {
+    const key = userId ? `${DB_KEYS.CART_PREFIX}${userId}` : 'medigen_cart_guest';
+    setStorage(key, items);
+  },
+
+  getBookmarks: (userId: string | null): string[] => {
+    const key = userId ? `${DB_KEYS.BOOKMARK_PREFIX}${userId}` : 'medigen_bookmarks_guest';
+    return getStorage<string[]>(key, []);
+  },
+
+  saveBookmarks: (userId: string | null, ids: string[]): void => {
+    const key = userId ? `${DB_KEYS.BOOKMARK_PREFIX}${userId}` : 'medigen_bookmarks_guest';
+    setStorage(key, ids);
   }
 };

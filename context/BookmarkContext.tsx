@@ -1,5 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect, PropsWithChildren } from 'react';
+import { useAuth } from './AuthContext';
+import { db } from '../services/db';
 
 interface BookmarkContextType {
   bookmarks: string[];
@@ -11,23 +13,20 @@ interface BookmarkContextType {
 const BookmarkContext = createContext<BookmarkContextType | undefined>(undefined);
 
 export const BookmarkProvider = ({ children }: PropsWithChildren) => {
-  const [bookmarks, setBookmarks] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem('medigen_bookmarks');
-      return saved ? JSON.parse(saved) : [];
-    } catch (e) {
-      console.error("Failed to load bookmarks from localStorage", e);
-      return [];
-    }
-  });
+  const { user } = useAuth();
+  const userId = user?.id || null;
+  const [bookmarks, setBookmarks] = useState<string[]>([]);
 
+  // Load bookmarks on mount or user change
   useEffect(() => {
-    try {
-      localStorage.setItem('medigen_bookmarks', JSON.stringify(bookmarks));
-    } catch (e) {
-      console.error("Failed to save bookmarks to localStorage", e);
-    }
-  }, [bookmarks]);
+    const loadedBookmarks = db.getBookmarks(userId);
+    setBookmarks(loadedBookmarks);
+  }, [userId]);
+
+  // Persist bookmarks on change
+  useEffect(() => {
+    db.saveBookmarks(userId, bookmarks);
+  }, [bookmarks, userId]);
 
   const addBookmark = (id: string) => {
     setBookmarks((prev) => {

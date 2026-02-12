@@ -22,12 +22,13 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     try {
-        const authenticatedUser = await db.authenticateUser(email, password);
-        setUser(authenticatedUser);
-        sessionStorage.setItem('medigen_session_user', JSON.stringify(authenticatedUser));
+        const loggedUser = await db.authenticateUser(email, password);
+        setUser(loggedUser);
+        sessionStorage.setItem('medigen_session_user', JSON.stringify(loggedUser));
+        await db.logActivity('Login', `User logged in: ${email}`);
         return { success: true };
-    } catch (error) {
-        return { success: false, error: (error as Error).message };
+    } catch (e: any) {
+        return { success: false, error: e.message || "Login failed" };
     }
   };
 
@@ -37,12 +38,15 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
           setUser(newUser);
           sessionStorage.setItem('medigen_session_user', JSON.stringify(newUser));
           return { success: true };
-      } catch (error) {
-          return { success: false, error: (error as Error).message };
+      } catch (e: any) {
+          return { success: false, error: e.message || "Registration failed" };
       }
   };
 
   const logout = () => {
+    if (user) {
+        db.logActivity('Logout', `User logged out: ${user.email}`);
+    }
     setUser(null);
     sessionStorage.removeItem('medigen_session_user');
   };

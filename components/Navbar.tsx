@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Pill, LogOut, Heart, ShoppingCart, MapPin, Truck, ShieldCheck, LayoutDashboard, User } from 'lucide-react';
+import { Pill, LogOut, Heart, ShoppingCart, MapPin, Truck, User, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useBookmarks } from '../context/BookmarkContext';
 import { useCart } from '../context/CartContext';
@@ -13,17 +13,9 @@ const Navbar: React.FC = () => {
   const { itemCount } = useCart();
   const location = useLocation();
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [adminEmailPrefill, setAdminEmailPrefill] = useState('');
 
-  const handleOpenLogin = () => {
-    setAdminEmailPrefill('');
-    setShowAuthModal(true);
-  };
-
-  const handleOpenAdminLogin = () => {
-    setAdminEmailPrefill('admin@medigen.com');
-    setShowAuthModal(true);
-  };
+  // Check if user is the specific admin for conditional rendering if needed
+  const isAdmin = isAuthenticated && user?.role === 'admin' && user?.email === 'admin@medigen.com';
 
   return (
     <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-100 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.05)]">
@@ -46,22 +38,7 @@ const Navbar: React.FC = () => {
           {/* Right: User Actions */}
           <div className="flex items-center gap-4 sm:gap-6 lg:gap-8 z-20">
             
-            {/* Admin Block - Visible Only to Admins */}
-            {isAuthenticated && user?.role === 'admin' && (
-              <Link 
-                to="/admin" 
-                className={`hidden lg:flex items-center gap-2 text-sm font-bold transition-all ${
-                    location.pathname === '/admin'
-                    ? 'text-white bg-gray-800 px-4 py-2 rounded-full shadow-lg'
-                    : 'text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-full'
-                }`}
-                title="Admin Dashboard"
-              >
-                <LayoutDashboard size={18} />
-                <span>Admin Panel</span>
-              </Link>
-            )}
-
+            {/* Standard User Links */}
             <Link 
                 to="/stores" 
                 className={`hidden lg:flex items-center gap-2 text-sm font-medium transition-all ${
@@ -120,17 +97,23 @@ const Navbar: React.FC = () => {
                 )}
             </Link>
 
+            {/* Admin Block Icon - Swapped to ShieldCheck */}
+            {(!isAuthenticated || isAdmin) && (
+                 <Link 
+                    to={isAdmin ? "/admin" : "/admin/login"} 
+                    className={`relative p-2.5 rounded-full transition-all hover:scale-105 ${
+                        location.pathname.startsWith('/admin')
+                        ? 'bg-pastel-primary text-white shadow-lg shadow-teal-500/20' 
+                        : 'text-gray-400 hover:text-pastel-primary hover:bg-pastel-mint/50'
+                    }`}
+                    title="Admin Access"
+                >
+                    <ShieldCheck size={22} />
+                </Link>
+            )}
+
             {isAuthenticated ? (
               <div className="flex items-center gap-4 pl-4 border-l border-gray-100">
-                 {/* Mobile Admin Link */}
-                 <div className="md:hidden">
-                    {user?.role === 'admin' && (
-                        <Link to="/admin" className="text-gray-600 hover:text-pastel-primary">
-                            <LayoutDashboard size={20} />
-                        </Link>
-                    )}
-                 </div>
-
                  <div className="hidden xl:block text-right">
                     <p className="text-xs text-gray-400 font-medium">Welcome,</p>
                     <p className="text-sm font-bold text-gray-700">{user?.name.split(' ')[0]}</p>
@@ -147,17 +130,8 @@ const Navbar: React.FC = () => {
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                 {/* Admin Trigger Button for Guests */}
-                 <button 
-                    onClick={handleOpenAdminLogin}
-                    className="text-gray-300 hover:text-pastel-primary p-2 transition-colors"
-                    title="Admin Login Shortcut"
-                 >
-                    <ShieldCheck size={20} />
-                 </button>
-
                  <button
-                    onClick={handleOpenLogin}
+                    onClick={() => setShowAuthModal(true)}
                     className="flex items-center gap-2 text-sm font-bold text-white bg-pastel-primary hover:bg-pastel-secondary px-5 py-2.5 rounded-full shadow-lg shadow-teal-500/20 transition-all transform hover:scale-105"
                  >
                     <User size={18} /> Login
@@ -168,11 +142,10 @@ const Navbar: React.FC = () => {
         </div>
       </div>
       
-      {/* Global Auth Modal */}
+      {/* Global Auth Modal for Users */}
       <AuthModal 
         isOpen={showAuthModal} 
         onClose={() => setShowAuthModal(false)} 
-        initialEmail={adminEmailPrefill}
       />
     </nav>
   );

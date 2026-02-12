@@ -1,30 +1,42 @@
+
 import React, { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
 import { Trash2, Plus, Minus, ArrowRight, ShoppingBag, Truck, ChevronRight, Package } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { db } from '../services/db';
 import { Order } from '../types';
+import { useAuth } from '../context/AuthContext';
 
 const CartPage: React.FC = () => {
   const { items, removeFromCart, updateQuantity, cartTotal, itemCount } = useCart();
+  const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [latestOrder, setLatestOrder] = useState<Order | null>(null);
 
+  // Billing Constants
+  const DELIVERY_THRESHOLD = 200;
+  const DELIVERY_FEE = 40;
+  const PLATFORM_FEE = 10;
+
+  const deliveryCharge = cartTotal > DELIVERY_THRESHOLD ? 0 : DELIVERY_FEE;
+  const finalTotal = cartTotal + deliveryCharge + PLATFORM_FEE;
+  const savings = items.reduce((acc, i) => acc + (i.brandedPrice - i.genericPrice) * i.quantity, 0);
+
   useEffect(() => {
     const fetchOrders = async () => {
-        try {
-            const orders = await db.getAllOrders();
-            if (orders.length > 0) {
-                // Get the most recent order
-                const sorted = orders.sort((a, b) => b.createdAt - a.createdAt);
-                setLatestOrder(sorted[0]);
+        if (isAuthenticated && user?.email) {
+            try {
+                const orders = await db.getOrdersByEmail(user.email);
+                if (orders.length > 0) {
+                    setLatestOrder(orders[0]);
+                }
+            } catch (e) {
+                console.error("Failed to fetch orders", e);
             }
-        } catch (e) {
-            console.error("Failed to fetch orders", e);
         }
     }
     fetchOrders();
-  }, []);
+  }, [isAuthenticated, user]);
 
   return (
     <div className="min-h-screen bg-pastel-background py-10">
@@ -148,21 +160,30 @@ const CartPage: React.FC = () => {
                     </div>
                     <div className="flex justify-between text-gray-500 text-sm">
                         <span>Delivery Fee</span>
-                        <span className="text-green-500 font-medium">Free</span>
+                        {deliveryCharge === 0 ? (
+                           <span className="text-green-500 font-medium">Free</span>
+                        ) : (
+                           <span className="font-medium text-gray-700">₹{DELIVERY_FEE.toFixed(2)}</span>
+                        )}
                     </div>
+                    {deliveryCharge > 0 && (
+                        <div className="text-[10px] text-orange-500 text-right -mt-2 font-medium">
+                            Add items worth ₹{(DELIVERY_THRESHOLD - cartTotal).toFixed(0)} more for free delivery
+                        </div>
+                    )}
                     <div className="flex justify-between text-gray-500 text-sm">
                         <span>Platform Fee</span>
-                        <span className="font-medium text-gray-700">₹10.00</span>
+                        <span className="font-medium text-gray-700">₹{PLATFORM_FEE.toFixed(2)}</span>
                     </div>
                 </div>
 
                 <div className="border-t border-dashed border-gray-200 pt-6 mb-8">
                     <div className="flex justify-between text-xl font-bold text-gray-800">
                         <span>Total Amount</span>
-                        <span>₹{(cartTotal + 10).toFixed(2)}</span>
+                        <span>₹{finalTotal.toFixed(2)}</span>
                     </div>
                     <div className="text-xs text-green-700 mt-3 bg-green-50 p-3 rounded-xl text-center font-medium border border-green-100">
-                        You saved ₹{(items.reduce((acc, i) => acc + (i.brandedPrice - i.genericPrice) * i.quantity, 0)).toFixed(2)} on this order!
+                        You saved ₹{savings.toFixed(2)} on this order!
                     </div>
                 </div>
 

@@ -1,6 +1,8 @@
 
 import React, { createContext, useContext, useState, useEffect, PropsWithChildren } from 'react';
 import { CartItem, Medicine } from '../types';
+import { useAuth } from './AuthContext';
+import { db } from '../services/db';
 
 interface CartContextType {
   items: CartItem[];
@@ -15,18 +17,21 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider = ({ children }: PropsWithChildren) => {
-  const [items, setItems] = useState<CartItem[]>(() => {
-    try {
-      const saved = localStorage.getItem('medigen_cart');
-      return saved ? JSON.parse(saved) : [];
-    } catch (e) {
-      return [];
-    }
-  });
+  const { user } = useAuth();
+  const userId = user?.id || null;
 
+  const [items, setItems] = useState<CartItem[]>([]);
+
+  // Load cart on mount or user change
   useEffect(() => {
-    localStorage.setItem('medigen_cart', JSON.stringify(items));
-  }, [items]);
+    const loadedCart = db.getCart(userId);
+    setItems(loadedCart);
+  }, [userId]);
+
+  // Persist cart on items change
+  useEffect(() => {
+    db.saveCart(userId, items);
+  }, [items, userId]);
 
   const addToCart = (medicine: Medicine) => {
     setItems(prev => {

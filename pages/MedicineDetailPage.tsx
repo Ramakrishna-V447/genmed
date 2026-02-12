@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { MEDICINES } from '../constants';
@@ -150,7 +151,7 @@ const MedicineDetailPage: React.FC = () => {
                                 <Zap size={20} /> Buy Now
                             </button>
                             <p className="text-xs text-center text-gray-400 mt-2">
-                                Free delivery on orders above ₹500
+                                Free delivery on orders above ₹200
                             </p>
                         </div>
                     ) : (

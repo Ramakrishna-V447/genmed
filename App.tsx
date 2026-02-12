@@ -11,13 +11,14 @@ import CheckoutPage from './pages/CheckoutPage';
 import StoresPage from './pages/StoresPage';
 import OrderTrackingPage from './pages/OrderTrackingPage';
 import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminLoginPage from './pages/admin/AdminLoginPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { BookmarkProvider } from './context/BookmarkContext';
 import { CartProvider } from './context/CartContext';
 import { ThemeProvider } from './context/ThemeContext';
 
-// Layout wrapper to hide Navbar/ChatBot on Admin pages
-const MainLayout: React.FC<PropsWithChildren> = ({ children }) => (
+// Layout wrapper for User Panel (Navbar + Footer + ChatBot)
+const UserLayout: React.FC<PropsWithChildren> = ({ children }) => (
   <>
     <Navbar />
     <main>
@@ -40,18 +41,20 @@ const MainLayout: React.FC<PropsWithChildren> = ({ children }) => (
 const AppRoutes = () => {
     return (
         <Routes>
-            {/* User Routes */}
-            <Route path="/" element={<MainLayout><HomePage /></MainLayout>} />
-            <Route path="/saved" element={<MainLayout><SavedPage /></MainLayout>} />
-            <Route path="/cart" element={<MainLayout><CartPage /></MainLayout>} />
-            <Route path="/checkout" element={<MainLayout><CheckoutPage /></MainLayout>} />
-            <Route path="/track-order" element={<MainLayout><OrderTrackingPage /></MainLayout>} />
-            <Route path="/stores" element={<MainLayout><StoresPage /></MainLayout>} />
-            <Route path="/medicine/:id" element={<MainLayout><MedicineDetailPage /></MainLayout>} />
+            {/* User Panel Routes */}
+            <Route path="/" element={<UserLayout><HomePage /></UserLayout>} />
+            <Route path="/saved" element={<UserLayout><SavedPage /></UserLayout>} />
+            <Route path="/cart" element={<UserLayout><CartPage /></UserLayout>} />
+            <Route path="/checkout" element={<UserLayout><CheckoutPage /></UserLayout>} />
+            <Route path="/track-order" element={<UserLayout><OrderTrackingPage /></UserLayout>} />
+            <Route path="/stores" element={<UserLayout><StoresPage /></UserLayout>} />
+            <Route path="/medicine/:id" element={<UserLayout><MedicineDetailPage /></UserLayout>} />
             
-            {/* Admin Routes (No MainLayout) */}
+            {/* Admin Panel Routes */}
+            <Route path="/admin/login" element={<AdminLoginPage />} />
             <Route path="/admin" element={<AdminDashboard />} />
 
+            {/* Fallback */}
             <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
     )

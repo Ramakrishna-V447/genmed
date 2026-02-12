@@ -1,10 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { db } from '../services/db';
 import { MapPin, CreditCard, CheckCircle2, Home, Building, Truck, Loader2, Mail } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { db } from '../services/db';
-import { Address } from '../types';
 
 const CheckoutPage: React.FC = () => {
   const { cartTotal, items, clearCart } = useCart();
@@ -13,6 +13,14 @@ const CheckoutPage: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [step, setStep] = useState(1);
   const [addressType, setAddressType] = useState<'home' | 'work'>('home');
+  
+  // Billing Constants
+  const DELIVERY_THRESHOLD = 200;
+  const DELIVERY_FEE = 40;
+  const PLATFORM_FEE = 10;
+  
+  const deliveryCharge = cartTotal > DELIVERY_THRESHOLD ? 0 : DELIVERY_FEE;
+  const finalTotal = cartTotal + deliveryCharge + PLATFORM_FEE;
   
   // Form State
   const [formData, setFormData] = useState({
@@ -24,7 +32,7 @@ const CheckoutPage: React.FC = () => {
     pincode: ''
   });
 
-  // Pre-fill user data if available when component mounts or user changes
+  // Pre-fill user data
   useEffect(() => {
     if (user) {
         setFormData(prev => ({
@@ -45,30 +53,29 @@ const CheckoutPage: React.FC = () => {
 
     setIsProcessing(true);
 
-    const address: Address = {
-        fullName: formData.fullName,
-        phone: formData.phone,
-        line: formData.line,
-        city: formData.city,
-        pincode: formData.pincode,
-        type: addressType
-    };
-
     try {
-        // Save to Database and Trigger Email
-        const order = await db.saveOrder(items, cartTotal + 10, address, formData.email); 
+        const address = {
+            fullName: formData.fullName,
+            phone: formData.phone,
+            line: formData.line,
+            city: formData.city,
+            pincode: formData.pincode,
+            type: addressType
+        };
+
+        const newOrder = await db.saveOrder(items, finalTotal, address, formData.email);
         
-        setStep(3); // Show Success UI
-        
+        setIsProcessing(false);
+        setStep(3); // Success Step
+
         setTimeout(() => {
             clearCart();
-            // Redirect to tracking page with the specific Order ID
-            navigate(`/track-order?orderId=${order.id}`);
-        }, 2500); // Slightly longer delay to let user read success message
+            navigate(`/track-order?orderId=${newOrder.id}`);
+        }, 2000);
     } catch (error) {
         console.error("Order Failed", error);
-        alert("Failed to place order. Please try again.");
         setIsProcessing(false);
+        alert("Failed to place order. Please try again.");
     }
   };
 
@@ -215,8 +222,16 @@ const CheckoutPage: React.FC = () => {
                              <span>₹{cartTotal.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between text-gray-600">
-                             <span>Delivery Partner Fee</span>
-                             <span>₹10.00</span>
+                             <span>Delivery Fee</span>
+                             {deliveryCharge === 0 ? (
+                                <span className="text-green-500 font-medium">Free</span>
+                             ) : (
+                                <span>₹{DELIVERY_FEE.toFixed(2)}</span>
+                             )}
+                        </div>
+                        <div className="flex justify-between text-gray-600">
+                             <span>Platform Fee</span>
+                             <span>₹{PLATFORM_FEE.toFixed(2)}</span>
                         </div>
                          <div className="flex justify-between text-green-600 font-medium">
                              <span>Total Discount</span>
@@ -224,7 +239,7 @@ const CheckoutPage: React.FC = () => {
                         </div>
                         <div className="border-t pt-3 flex justify-between font-bold text-lg text-gray-800">
                              <span>To Pay</span>
-                             <span>₹{(cartTotal + 10).toFixed(2)}</span>
+                             <span>₹{finalTotal.toFixed(2)}</span>
                         </div>
                      </div>
 

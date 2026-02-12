@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { Check, Package, Truck, Phone, Home, Clock, User, Box, Loader2, AlertCircle, Search, Bell, MessageCircle, Smartphone, ShoppingBag, ArrowRight, RefreshCcw, Store } from 'lucide-react';
+import { Check, Package, Truck, Phone, Home, Clock, User, Box, Loader2, AlertCircle, Search, Bell, MessageCircle, Smartphone, ShoppingBag, Store } from 'lucide-react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { db } from '../services/db';
 import { Order } from '../types';
@@ -9,14 +10,12 @@ const OrderTrackingPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const urlOrderId = searchParams.get('orderId');
-  const { user, isAuthenticated } = useAuth();
+  const { user } = useAuth();
   
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentStep, setCurrentStep] = useState(1);
   const [inputId, setInputId] = useState('');
-  const [error, setError] = useState('');
-  const [isRecentOrder, setIsRecentOrder] = useState(false);
   
   // Notification States
   const [notifyWhatsapp, setNotifyWhatsapp] = useState(true);
@@ -25,42 +24,17 @@ const OrderTrackingPage: React.FC = () => {
   useEffect(() => {
     const fetchOrderData = async () => {
       setLoading(true);
-      setError('');
-      setOrder(null);
-
-      try {
-        if (urlOrderId) {
-            // Case 1: Specific Order ID in URL
-            const data = await db.getOrder(urlOrderId);
-            if (data) {
-                setOrder(data);
-                setIsRecentOrder(false);
-            } else {
-                setError(`Order #${urlOrderId} not found.`);
-            }
-        } else if (isAuthenticated && user?.email) {
-            // Case 2: Logged in, No URL ID -> Fetch Latest
-            const userOrders = await db.getOrdersByEmail(user.email);
-            if (userOrders.length > 0) {
-                setOrder(userOrders[0]);
-                setIsRecentOrder(true);
-            } else {
-                // User has no orders yet
-                setOrder(null);
-            }
-        } else {
-            // Case 3: Guest, No URL ID -> Show Manual Input
-            setOrder(null);
-        }
-      } catch (err) {
-        setError("Unable to retrieve order details.");
-      } finally {
-        setLoading(false);
+      if (urlOrderId) {
+          const foundOrder = await db.getOrder(urlOrderId);
+          setOrder(foundOrder);
+      } else {
+          setOrder(null);
       }
+      setLoading(false);
     };
 
     fetchOrderData();
-  }, [urlOrderId, isAuthenticated, user]);
+  }, [urlOrderId]);
 
   // Simulate progress
   useEffect(() => {
@@ -75,12 +49,6 @@ const OrderTrackingPage: React.FC = () => {
       e.preventDefault();
       if (!inputId.trim()) return;
       navigate(`/track-order?orderId=${inputId.trim()}`);
-  };
-
-  const clearTracking = () => {
-      setSearchParams({});
-      setOrder(null);
-      setIsRecentOrder(false);
   };
 
   const steps = [
@@ -99,36 +67,7 @@ const OrderTrackingPage: React.FC = () => {
     );
   }
 
-  // --- CASE: LOGGED IN BUT NO ORDERS ---
-  if (!order && isAuthenticated && !urlOrderId) {
-      return (
-        <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
-            <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 max-w-md w-full text-center animate-fade-in">
-                <div className="bg-gray-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <ShoppingBag size={32} className="text-gray-400" />
-                </div>
-                <h2 className="text-2xl font-bold text-gray-800 mb-2">No orders yet</h2>
-                <p className="text-gray-500 mb-8">
-                    Welcome, {user?.name.split(' ')[0]}! You haven't placed any orders yet. Start saving on medicines today.
-                </p>
-                <Link 
-                    to="/" 
-                    className="block w-full bg-pastel-primary text-white font-bold py-3.5 rounded-xl shadow-lg shadow-teal-500/20 hover:bg-pastel-secondary transition-all"
-                >
-                    Start Shopping
-                </Link>
-                <button 
-                    onClick={() => navigate('/track-order?orderId=manual')} 
-                    className="mt-6 text-sm text-gray-400 hover:text-pastel-primary"
-                >
-                    Have an Order ID? Track manually
-                </button>
-            </div>
-        </div>
-      );
-  }
-
-  // --- CASE: MANUAL INPUT (Guest or explicit request) ---
+  // --- CASE: NO ORDER ID (SEARCH VIEW) ---
   if (!order) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
@@ -154,12 +93,6 @@ const OrderTrackingPage: React.FC = () => {
                     />
                 </div>
                 
-                {error && (
-                    <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 p-3 rounded-lg">
-                        <AlertCircle size={16} /> {error}
-                    </div>
-                )}
-
                 <button 
                     type="submit" 
                     disabled={!inputId}
@@ -185,30 +118,12 @@ const OrderTrackingPage: React.FC = () => {
       {/* Sticky Header */}
       <div className="bg-white border-b border-gray-100 sticky top-16 z-20 shadow-sm">
         <div className="max-w-3xl mx-auto px-4 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-                {isRecentOrder ? (
-                    <div>
-                        <h1 className="text-lg font-bold text-gray-800">Hello, {user?.name.split(' ')[0]}</h1>
-                        <p className="text-xs text-gray-500">Here is your recent order</p>
-                    </div>
-                ) : (
-                     <h1 className="text-lg sm:text-xl font-bold text-gray-800 flex items-center gap-2">
-                        <Truck className="text-pastel-primary" /> Order #{order.id}
-                    </h1>
-                )}
-            </div>
-            
-            <div className="flex items-center gap-3">
-                 <button 
-                    onClick={clearTracking}
-                    className="text-xs font-bold text-gray-400 hover:text-pastel-primary flex items-center gap-1"
-                 >
-                    <RefreshCcw size={12} /> Track Another
-                 </button>
-                 <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide animate-pulse flex items-center gap-1">
-                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div> In Transit
-                 </span>
-            </div>
+            <h1 className="text-lg sm:text-xl font-bold text-gray-800 flex items-center gap-2">
+                <Truck className="text-pastel-primary" /> Order #{order.id}
+            </h1>
+            <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide animate-pulse flex items-center gap-1">
+                <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div> In Transit
+            </span>
         </div>
       </div>
 
@@ -296,73 +211,12 @@ const OrderTrackingPage: React.FC = () => {
             </div>
         </div>
 
-        {/* Notification Preferences Block */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <div className="flex items-center gap-2 mb-6">
-                <Bell size={18} className="text-pastel-primary" />
-                <h2 className="font-bold text-gray-800">Get Updates</h2>
-            </div>
-            
-            <div className="space-y-4">
-                {/* WhatsApp Toggle */}
-                <div className="flex items-center justify-between p-4 border border-gray-100 rounded-2xl bg-gray-50/50">
-                    <div className="flex items-center gap-3">
-                        <div className="bg-green-100 text-green-600 p-2.5 rounded-full">
-                            <MessageCircle size={20} />
-                        </div>
-                        <div>
-                            <h3 className="font-bold text-gray-800 text-sm">WhatsApp Notifications</h3>
-                            <p className="text-xs text-gray-500">Get real-time delivery updates</p>
-                        </div>
-                    </div>
-                    
-                    <button 
-                        onClick={() => setNotifyWhatsapp(!notifyWhatsapp)}
-                        className={`w-12 h-7 rounded-full transition-colors relative focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pastel-primary ${
-                            notifyWhatsapp ? 'bg-green-500' : 'bg-gray-300'
-                        }`}
-                        aria-label="Toggle WhatsApp notifications"
-                    >
-                        <div className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform duration-200 ${
-                            notifyWhatsapp ? 'translate-x-5' : 'translate-x-0'
-                        }`} />
-                    </button>
-                </div>
-
-                {/* SMS Toggle */}
-                <div className="flex items-center justify-between p-4 border border-gray-100 rounded-2xl bg-gray-50/50">
-                    <div className="flex items-center gap-3">
-                        <div className="bg-blue-100 text-blue-600 p-2.5 rounded-full">
-                            <Smartphone size={20} />
-                        </div>
-                        <div>
-                            <h3 className="font-bold text-gray-800 text-sm">SMS Alerts</h3>
-                            <p className="text-xs text-gray-500">Receive status via text message</p>
-                        </div>
-                    </div>
-                    
-                    <button 
-                        onClick={() => setNotifySms(!notifySms)}
-                        className={`w-12 h-7 rounded-full transition-colors relative focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pastel-primary ${
-                            notifySms ? 'bg-blue-500' : 'bg-gray-300'
-                        }`}
-                        aria-label="Toggle SMS notifications"
-                    >
-                        <div className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform duration-200 ${
-                            notifySms ? 'translate-x-5' : 'translate-x-0'
-                        }`} />
-                    </button>
-                </div>
-            </div>
-        </div>
-
         {/* Package Contents Accordion (Simplified) */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             <h2 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
                 <Box size={18} className="text-pastel-primary" /> Package Details
             </h2>
 
-             {/* Added Shop Type Info */}
              <div className="mb-4 bg-gray-50 rounded-xl p-3 flex justify-between items-center border border-gray-100">
                 <span className="text-xs text-gray-500 uppercase font-bold tracking-wider flex items-center gap-1"><Store size={12}/> Shop Type</span>
                 <span className="text-sm font-bold text-pastel-primary bg-pastel-blue/30 px-3 py-1 rounded-full">Generic Medical Store</span>
@@ -387,15 +241,6 @@ const OrderTrackingPage: React.FC = () => {
                 <span>Total Amount</span>
                 <span>₹{order.totalAmount.toFixed(2)}</span>
             </div>
-        </div>
-
-        {/* Legal Disclaimer */}
-        <div className="bg-yellow-50 rounded-xl p-4 flex gap-3">
-             <AlertCircle className="text-yellow-600 shrink-0" size={18} />
-             <p className="text-xs text-yellow-800 leading-relaxed">
-                <strong>Disclaimer:</strong> Delivery timelines may vary depending on location and medical shop availability. 
-                Please inspect package seals upon delivery.
-             </p>
         </div>
 
         <Link to="/" className="block w-full text-center py-4 text-gray-400 hover:text-pastel-primary font-medium text-sm transition-colors">

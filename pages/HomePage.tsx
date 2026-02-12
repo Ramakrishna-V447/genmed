@@ -1,30 +1,14 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { MEDICINES } from '../constants';
 import MedicineCard from '../components/MedicineCard';
-import { Search, Filter, Truck, ChevronRight, Clock, Package } from 'lucide-react';
-import { MedicineCategory, Order } from '../types';
-import { useAuth } from '../context/AuthContext';
-import { db } from '../services/db';
-import { Link } from 'react-router-dom';
+import { Search, Filter } from 'lucide-react';
+import { MedicineCategory } from '../types';
 
 const HomePage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   
-  const { user, isAuthenticated } = useAuth();
-  const [recentOrder, setRecentOrder] = useState<Order | null>(null);
-
-  // Auto-fetch latest order for dashboard
-  useEffect(() => {
-    if (isAuthenticated && user?.email) {
-      db.getOrdersByEmail(user.email).then(orders => {
-        if (orders.length > 0) setRecentOrder(orders[0]);
-      });
-    } else {
-        setRecentOrder(null);
-    }
-  }, [isAuthenticated, user]);
-
   const categories = ['All', ...Object.values(MedicineCategory)];
 
   const filteredMedicines = MEDICINES.filter(med => {
@@ -40,55 +24,6 @@ const HomePage: React.FC = () => {
   return (
     <div className="pb-20">
       
-      {/* Dashboard Section: Recent Order (Auto-displayed for logged-in users) */}
-      {recentOrder && (
-        <div className="bg-white border-b border-gray-100 animate-slide-up relative z-10">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-3xl bg-pastel-mint/30 border border-pastel-mint shadow-sm relative overflow-hidden">
-                    {/* Decorative bg element */}
-                    <div className="absolute top-0 right-0 w-40 h-40 bg-pastel-primary/10 rounded-full blur-3xl -mr-10 -mt-10"></div>
-                    
-                    <div className="flex items-start sm:items-center gap-5 relative z-10">
-                        <div className="bg-white p-3.5 rounded-2xl shadow-sm text-pastel-primary border border-gray-50">
-                            <Truck size={24} />
-                        </div>
-                        <div>
-                            <h2 className="text-lg font-bold text-gray-800 flex items-center gap-3">
-                                Your Recent Order 
-                                <span className="text-[10px] bg-white/60 text-pastel-primary border border-pastel-primary/20 px-2 py-0.5 rounded-full uppercase tracking-wider font-bold backdrop-blur-sm">In Transit</span>
-                            </h2>
-                            <div className="text-sm text-gray-500 mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
-                               <span className="font-medium text-gray-700">#{recentOrder.id}</span>
-                               <span className="text-gray-300">•</span>
-                               <span className="flex items-center gap-1"><Package size={14} className="text-gray-400" /> {recentOrder.items.length} Items</span>
-                               <span className="text-gray-300">•</span>
-                               <span className="font-bold text-gray-700">₹{recentOrder.totalAmount.toFixed(2)}</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-6 pl-16 sm:pl-0 relative z-10">
-                        <div className="text-right hidden md:block">
-                            <div className="text-[10px] text-gray-400 uppercase font-bold tracking-wider mb-0.5 flex items-center justify-end gap-1">
-                                <Clock size={12} /> Est. Delivery
-                            </div>
-                            <div className="text-base font-bold text-pastel-primary">{recentOrder.deliveryTime}</div>
-                        </div>
-                        
-                        <div className="h-10 w-px bg-pastel-primary/20 hidden md:block"></div>
-
-                        <Link 
-                            to="/track-order"
-                            className="bg-white text-pastel-primary border border-pastel-primary/20 hover:bg-pastel-primary hover:text-white hover:border-transparent px-6 py-3 rounded-xl font-bold transition-all shadow-sm flex items-center gap-2 text-sm whitespace-nowrap group"
-                        >
-                            Track Status <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                        </Link>
-                    </div>
-                 </div>
-            </div>
-        </div>
-      )}
-
       {/* Hero Section */}
       <div className="bg-gradient-to-b from-pastel-blue to-transparent pt-20 pb-24 px-4 sm:px-6 lg:px-8 mb-4">
         <div className="max-w-4xl mx-auto text-center animate-fade-in">

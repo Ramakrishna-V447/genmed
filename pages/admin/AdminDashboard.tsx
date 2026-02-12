@@ -1,17 +1,15 @@
 
 import React, { useState, useEffect } from 'react';
 import { 
-  LayoutDashboard, Package, ShoppingCart, Users, Settings, LogOut, 
+  LayoutDashboard, Package, ShoppingCart, Settings, LogOut, 
   Plus, Edit2, Trash2, Save, X, Activity, DollarSign, Store, AlertTriangle, FileText,
-  Moon, Sun, ShieldCheck
+  Moon, Sun, ShieldCheck, Upload, Beaker, Pill
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { db } from '../../services/db';
 import { Medicine, Order, MedicineCategory, ActivityLog, MarketRate } from '../../types';
 import { useNavigate } from 'react-router-dom';
-
-// --- Sub-Components for Dashboard ---
 
 interface StatCardProps {
   title: string;
@@ -45,8 +43,6 @@ const ActivityLogItem: React.FC<{ log: ActivityLog }> = ({ log }) => (
   </div>
 );
 
-// --- Main Admin Dashboard Component ---
-
 const AdminDashboard: React.FC = () => {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
@@ -61,13 +57,18 @@ const AdminDashboard: React.FC = () => {
 
   // Modal State
   const [showModal, setShowModal] = useState(false);
-  // Using 'any' for editingMed to allow flexible form handling (e.g. strings for array fields)
   const [editingMed, setEditingMed] = useState<any>(null);
 
-  // Auth Check
+  // Strict Auth Check for Separation
   useEffect(() => {
-    if (!user || user.role !== 'admin') {
-      navigate('/');
+    if (!user) {
+        navigate('/admin/login');
+        return;
+    } 
+    
+    // Strict Single Admin Enforcment
+    if (user.role !== 'admin' || user.email !== 'admin@medigen.com') {
+        navigate('/'); // Redirect normal users or imposters back to main site
     }
   }, [user, navigate]);
 
@@ -85,11 +86,19 @@ const AdminDashboard: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    // Only fetch if admin
+    if (user && user.role === 'admin' && user.email === 'admin@medigen.com') {
+        fetchData();
+    }
+  }, [user]);
+
+  const handleLogout = () => {
+      logout();
+      navigate('/admin/login');
+  };
 
   const handleDeleteMed = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this medicine?')) {
+    if (window.confirm('Are you sure you want to delete this medicine? This action cannot be undone.')) {
       await db.deleteMedicine(id);
       fetchData();
     }
@@ -99,30 +108,32 @@ const AdminDashboard: React.FC = () => {
     e.preventDefault();
     if (!editingMed) return;
 
-    // Helper to safely split comma-separated strings
-    const splitStr = (str: any) => typeof str === 'string' ? str.split(',').map(s => s.trim()).filter(Boolean) : (str || []);
+    const splitStr = (str: any) => typeof str === 'string' ? str.split(',').map((s: string) => s.trim()).filter(Boolean) : (str || []);
 
-    // Build the medicine object
     const medToSave: Medicine = {
       id: editingMed.id || `med_${Date.now()}`,
       name: editingMed.name || 'New Medicine',
-      brandExample: editingMed.brandExample || 'Brand',
+      brandExample: editingMed.brandExample || '',
       saltComposition: editingMed.saltComposition || '',
       category: editingMed.category || MedicineCategory.PAIN,
-      commonUse: splitStr(editingMed.commonUse),
+      commonUse: Array.isArray(editingMed.commonUse) ? editingMed.commonUse : splitStr(editingMed.commonUse),
       description: editingMed.description || '',
       genericPrice: Number(editingMed.genericPrice) || 0,
       brandedPrice: Number(editingMed.brandedPrice) || 0,
       stock: Number(editingMed.stock) || 0,
       expiryDate: editingMed.expiryDate || '2025-12-31',
       marketRates: editingMed.marketRates || [],
-      imageUrl: editingMed.imageUrl || 'https://via.placeholder.com/150',
-      dosage: editingMed.dosage || { normal: '', maxSafe: '', overdoseWarning: '' },
+      imageUrl: editingMed.imageUrl || 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&q=80&w=400',
+      dosage: {
+        normal: editingMed.dosage?.normal || '',
+        maxSafe: editingMed.dosage?.maxSafe || '',
+        overdoseWarning: editingMed.dosage?.overdoseWarning || ''
+      },
       details: {
-          mechanism: editingMed.details?.mechanism || '',
-          storage: editingMed.details?.storage || '',
-          sideEffects: splitStr(editingMed.details?.sideEffects),
-          contraindications: splitStr(editingMed.details?.contraindications)
+        mechanism: editingMed.details?.mechanism || '',
+        storage: editingMed.details?.storage || '',
+        sideEffects: Array.isArray(editingMed.details?.sideEffects) ? editingMed.details.sideEffects : splitStr(editingMed.details?.sideEffects),
+        contraindications: Array.isArray(editingMed.details?.contraindications) ? editingMed.details.contraindications : splitStr(editingMed.details?.contraindications)
       }
     };
 
@@ -134,7 +145,6 @@ const AdminDashboard: React.FC = () => {
 
   const openEditModal = (med?: Medicine) => {
     if (med) {
-        // Flatten arrays to strings for easier editing
         setEditingMed({
             ...med,
             commonUse: med.commonUse.join(', '),
@@ -145,13 +155,16 @@ const AdminDashboard: React.FC = () => {
             }
         });
     } else {
-        // Default new medicine structure
         setEditingMed({
+            name: '',
+            brandExample: '',
+            saltComposition: '',
             category: MedicineCategory.FEVER,
             marketRates: [],
             stock: 100,
             expiryDate: '',
             imageUrl: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&q=80&w=400',
+            description: '',
             dosage: { normal: '', maxSafe: '', overdoseWarning: '' },
             details: { mechanism: '', sideEffects: '', contraindications: '', storage: '' },
             commonUse: ''
@@ -165,34 +178,20 @@ const AdminDashboard: React.FC = () => {
     fetchData();
   };
 
-  // Market Rate Helpers
-  const addMarketRate = () => {
-    setEditingMed({
-        ...editingMed,
-        marketRates: [...(editingMed.marketRates || []), { shopName: '', price: 0, type: 'Branded' }]
-    });
-  };
-
-  const removeMarketRate = (index: number) => {
-    const newRates = [...(editingMed.marketRates || [])];
-    newRates.splice(index, 1);
-    setEditingMed({ ...editingMed, marketRates: newRates });
-  };
-
-  const updateMarketRate = (index: number, field: keyof MarketRate, value: any) => {
-    const newRates = [...(editingMed.marketRates || [])];
-    newRates[index] = { ...newRates[index], [field]: value };
-    setEditingMed({ ...editingMed, marketRates: newRates });
-  };
-
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900 text-gray-500 dark:text-gray-400">Loading Admin Panel...</div>;
+  if (loading) return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-slate-900 text-gray-500 dark:text-gray-400">
+          <div className="animate-spin mb-4"><Package size={32} /></div>
+          <p>Initializing Admin Portal...</p>
+      </div>
+  );
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex font-sans transition-colors duration-300">
       
       {/* Sidebar */}
       <aside className="w-64 bg-white dark:bg-slate-800 border-r border-gray-200 dark:border-slate-700 fixed h-full z-20 hidden lg:flex flex-col transition-colors duration-300">
-        <div className="h-20 flex items-center px-8 border-b border-gray-100 dark:border-slate-700">
+        <div className="h-20 flex items-center px-8 border-b border-gray-100 dark:border-slate-700 gap-2">
+           <ShieldCheck size={28} className="text-pastel-primary" />
            <span className="font-bold text-xl text-pastel-primary tracking-tight">MediGen<span className="text-gray-800 dark:text-white">Admin</span></span>
         </div>
 
@@ -235,7 +234,7 @@ const AdminDashboard: React.FC = () => {
                  <p className="text-xs text-gray-400">admin@medigen.com</p>
               </div>
            </div>
-           <button onClick={logout} className="w-full flex items-center justify-center gap-2 text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 py-2 rounded-lg text-sm font-bold transition-colors">
+           <button onClick={handleLogout} className="w-full flex items-center justify-center gap-2 text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 py-2 rounded-lg text-sm font-bold transition-colors">
               <LogOut size={16} /> Logout
            </button>
         </div>
@@ -247,7 +246,7 @@ const AdminDashboard: React.FC = () => {
         {/* Top Header Mobile */}
         <div className="lg:hidden mb-6 flex justify-between items-center">
             <span className="font-bold text-xl text-pastel-primary">MediGenAdmin</span>
-            <button onClick={logout}><LogOut size={20} className="text-gray-500 dark:text-gray-400"/></button>
+            <button onClick={handleLogout}><LogOut size={20} className="text-gray-500 dark:text-gray-400"/></button>
         </div>
 
         {/* Tab Content */}
@@ -307,6 +306,7 @@ const AdminDashboard: React.FC = () => {
            </div>
         )}
 
+        {/* Medicines Tab */}
         {activeTab === 'medicines' && (
            <div className="animate-slide-up space-y-6">
               <div className="flex justify-between items-center">
@@ -384,6 +384,7 @@ const AdminDashboard: React.FC = () => {
            </div>
         )}
 
+        {/* Orders Tab */}
         {activeTab === 'orders' && (
            <div className="animate-slide-up space-y-6">
               <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Order Management</h1>
@@ -424,14 +425,14 @@ const AdminDashboard: React.FC = () => {
            </div>
         )}
 
-        {/* New Settings Tab */}
+        {/* Settings Tab */}
         {activeTab === 'settings' && (
             <div className="animate-slide-up space-y-6">
                 <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Admin Settings</h1>
                 
                 <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm p-6 transition-colors">
                     <h3 className="font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
-                        <Activity size={20} className="text-pastel-primary" /> Appearance
+                        <Moon size={20} className="text-pastel-primary" /> Appearance
                     </h3>
                     
                     <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-700/50 rounded-xl border border-gray-100 dark:border-slate-700">
@@ -440,14 +441,19 @@ const AdminDashboard: React.FC = () => {
                             <p className="text-sm text-gray-500 dark:text-gray-400">Switch between light and dark mode for the admin panel.</p>
                         </div>
                         
-                        <button 
-                            onClick={toggleTheme}
-                            className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-pastel-primary focus:ring-offset-2 ${theme === 'dark' ? 'bg-slate-600' : 'bg-gray-300'}`}
-                        >
-                            <span className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform duration-200 shadow-sm flex items-center justify-center ${theme === 'dark' ? 'translate-x-7' : 'translate-x-1'}`}>
-                                {theme === 'dark' ? <Moon size={12} className="text-slate-700" /> : <Sun size={12} className="text-amber-500" />}
+                        <div className="flex items-center gap-3">
+                            <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                                {theme === 'light' ? 'Light Mode' : 'Dark Mode'}
                             </span>
-                        </button>
+                            <button 
+                                onClick={toggleTheme}
+                                className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-pastel-primary focus:ring-offset-2 ${theme === 'dark' ? 'bg-slate-600' : 'bg-gray-300'}`}
+                            >
+                                <span className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform duration-200 shadow-sm flex items-center justify-center ${theme === 'dark' ? 'translate-x-7' : 'translate-x-1'}`}>
+                                    {theme === 'dark' ? <Moon size={12} className="text-slate-700" /> : <Sun size={12} className="text-amber-500" />}
+                                </span>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -459,7 +465,7 @@ const AdminDashboard: React.FC = () => {
                         <AlertTriangle className="text-yellow-600 dark:text-yellow-500 shrink-0 mt-0.5" size={18} />
                         <div>
                             <p className="text-sm font-bold text-yellow-800 dark:text-yellow-500">Super Admin Access</p>
-                            <p className="text-xs text-yellow-700 dark:text-yellow-600 mt-1">You are logged in with full administrative privileges. Please ensure you logout when finished to maintain system security.</p>
+                            <p className="text-xs text-yellow-700 dark:text-yellow-600 mt-1">You are logged in as the Super Admin (admin@medigen.com). Ensure you logout when finished to maintain security.</p>
                         </div>
                     </div>
                 </div>
@@ -473,19 +479,23 @@ const AdminDashboard: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto animate-slide-up transition-colors">
              <div className="p-6 border-b border-gray-100 dark:border-slate-700 flex justify-between items-center sticky top-0 bg-white dark:bg-slate-800 z-20">
-                <h2 className="text-xl font-bold text-gray-800 dark:text-white">{editingMed?.id ? 'Edit Medicine' : 'Add New Medicine'}</h2>
-                <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"><X size={24} /></button>
+                <h2 className="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
+                    {editingMed?.id ? <Edit2 size={24}/> : <Plus size={24}/>}
+                    {editingMed?.id ? 'Edit Medicine' : 'Add New Medicine'}
+                </h2>
+                <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors">
+                    <X size={24} />
+                </button>
              </div>
              
              <form onSubmit={handleSaveMed} className="p-6 space-y-8">
-                
-                {/* Section 1: Basic Info */}
+                {/* 1. Basic Info Section */}
                 <div className="space-y-4">
                     <h3 className="text-sm font-bold text-pastel-primary uppercase tracking-wide border-b border-gray-100 dark:border-slate-700 pb-2 mb-4 flex items-center gap-2">
                         <Package size={16} /> Basic Information
                     </h3>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="group">
                             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Generic Name</label>
                             <input 
                                 className="w-full p-3 bg-gray-50 dark:bg-slate-700 dark:text-white rounded-xl border-transparent focus:bg-white dark:focus:bg-slate-600 focus:ring-2 focus:ring-pastel-primary outline-none transition-colors"
@@ -495,7 +505,7 @@ const AdminDashboard: React.FC = () => {
                                 placeholder="e.g. Paracetamol 650mg"
                             />
                         </div>
-                        <div>
+                        <div className="group">
                             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Brand Example</label>
                             <input 
                                 className="w-full p-3 bg-gray-50 dark:bg-slate-700 dark:text-white rounded-xl border-transparent focus:bg-white dark:focus:bg-slate-600 focus:ring-2 focus:ring-pastel-primary outline-none transition-colors"
@@ -505,231 +515,189 @@ const AdminDashboard: React.FC = () => {
                                 placeholder="e.g. Dolo 650"
                             />
                         </div>
-                    </div>
-                    <div>
-                         <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Common Uses (Comma separated)</label>
-                         <input 
-                            className="w-full p-3 bg-gray-50 dark:bg-slate-700 dark:text-white rounded-xl border-transparent focus:bg-white dark:focus:bg-slate-600 focus:ring-2 focus:ring-pastel-primary outline-none transition-colors"
-                            value={editingMed?.commonUse || ''}
-                            onChange={e => setEditingMed({...editingMed, commonUse: e.target.value})}
-                            placeholder="e.g. Fever, Pain, Headache"
-                        />
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
+                        <div className="group">
                             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Salt Composition</label>
                             <input 
                                 className="w-full p-3 bg-gray-50 dark:bg-slate-700 dark:text-white rounded-xl border-transparent focus:bg-white dark:focus:bg-slate-600 focus:ring-2 focus:ring-pastel-primary outline-none transition-colors"
                                 value={editingMed?.saltComposition || ''}
                                 onChange={e => setEditingMed({...editingMed, saltComposition: e.target.value})}
-                                required
+                                placeholder="e.g. Paracetamol IP 650mg"
                             />
                         </div>
-                        <div>
+                        <div className="group">
                             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Category</label>
                             <select 
-                                className="w-full p-3 bg-gray-50 dark:bg-slate-700 dark:text-white rounded-xl border-transparent focus:bg-white dark:focus:bg-slate-600 focus:ring-2 focus:ring-pastel-primary outline-none cursor-pointer transition-colors"
-                                value={editingMed?.category || MedicineCategory.PAIN}
-                                onChange={e => setEditingMed({...editingMed, category: e.target.value as MedicineCategory})}
+                                className="w-full p-3 bg-gray-50 dark:bg-slate-700 dark:text-white rounded-xl border-transparent focus:bg-white dark:focus:bg-slate-600 focus:ring-2 focus:ring-pastel-primary outline-none transition-colors cursor-pointer"
+                                value={editingMed?.category || MedicineCategory.FEVER}
+                                onChange={e => setEditingMed({...editingMed, category: e.target.value})}
                             >
-                                {Object.values(MedicineCategory).map(cat => (
+                                {Object.values(MedicineCategory).map((cat) => (
                                     <option key={cat} value={cat}>{cat}</option>
                                 ))}
                             </select>
                         </div>
+                        <div className="md:col-span-2 group">
+                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Description</label>
+                            <textarea 
+                                className="w-full p-3 bg-gray-50 dark:bg-slate-700 dark:text-white rounded-xl border-transparent focus:bg-white dark:focus:bg-slate-600 focus:ring-2 focus:ring-pastel-primary outline-none transition-colors min-h-[80px]"
+                                value={editingMed?.description || ''}
+                                onChange={e => setEditingMed({...editingMed, description: e.target.value})}
+                                placeholder="Brief description of the medicine..."
+                            />
+                        </div>
+                        <div className="md:col-span-2 group">
+                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Common Uses (Comma Separated)</label>
+                            <input 
+                                className="w-full p-3 bg-gray-50 dark:bg-slate-700 dark:text-white rounded-xl border-transparent focus:bg-white dark:focus:bg-slate-600 focus:ring-2 focus:ring-pastel-primary outline-none transition-colors"
+                                value={editingMed?.commonUse || ''}
+                                onChange={e => setEditingMed({...editingMed, commonUse: e.target.value})}
+                                placeholder="Fever, Pain, Headache"
+                            />
+                        </div>
                     </div>
                 </div>
 
-                {/* Section 2: Pricing & Inventory */}
+                {/* 2. Pricing & Stock */}
                 <div className="space-y-4">
                     <h3 className="text-sm font-bold text-pastel-primary uppercase tracking-wide border-b border-gray-100 dark:border-slate-700 pb-2 mb-4 flex items-center gap-2">
                         <DollarSign size={16} /> Pricing & Inventory
                     </h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Generic (₹)</label>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="group">
+                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Generic Price (₹)</label>
                             <input 
                                 type="number"
                                 className="w-full p-3 bg-gray-50 dark:bg-slate-700 dark:text-white rounded-xl border-transparent focus:bg-white dark:focus:bg-slate-600 focus:ring-2 focus:ring-pastel-primary outline-none transition-colors"
                                 value={editingMed?.genericPrice || ''}
-                                onChange={e => setEditingMed({...editingMed, genericPrice: Number(e.target.value)})}
+                                onChange={e => setEditingMed({...editingMed, genericPrice: e.target.value})}
                                 required
                             />
                         </div>
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Branded (₹)</label>
+                        <div className="group">
+                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Branded Price (₹)</label>
                             <input 
                                 type="number"
                                 className="w-full p-3 bg-gray-50 dark:bg-slate-700 dark:text-white rounded-xl border-transparent focus:bg-white dark:focus:bg-slate-600 focus:ring-2 focus:ring-pastel-primary outline-none transition-colors"
                                 value={editingMed?.brandedPrice || ''}
-                                onChange={e => setEditingMed({...editingMed, brandedPrice: Number(e.target.value)})}
+                                onChange={e => setEditingMed({...editingMed, brandedPrice: e.target.value})}
                                 required
                             />
                         </div>
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Stock</label>
+                        <div className="group">
+                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Stock Units</label>
                             <input 
                                 type="number"
                                 className="w-full p-3 bg-gray-50 dark:bg-slate-700 dark:text-white rounded-xl border-transparent focus:bg-white dark:focus:bg-slate-600 focus:ring-2 focus:ring-pastel-primary outline-none transition-colors"
                                 value={editingMed?.stock || ''}
-                                onChange={e => setEditingMed({...editingMed, stock: Number(e.target.value)})}
-                                required
+                                onChange={e => setEditingMed({...editingMed, stock: e.target.value})}
                             />
                         </div>
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Expiry</label>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="group">
+                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Image URL</label>
+                            <div className="flex gap-2">
+                                <input 
+                                    className="w-full p-3 bg-gray-50 dark:bg-slate-700 dark:text-white rounded-xl border-transparent focus:bg-white dark:focus:bg-slate-600 focus:ring-2 focus:ring-pastel-primary outline-none transition-colors"
+                                    value={editingMed?.imageUrl || ''}
+                                    onChange={e => setEditingMed({...editingMed, imageUrl: e.target.value})}
+                                    placeholder="https://..."
+                                />
+                                <div className="w-12 h-12 rounded-lg bg-gray-100 dark:bg-slate-700 overflow-hidden shrink-0 border border-gray-200 dark:border-slate-600">
+                                    {editingMed?.imageUrl && <img src={editingMed.imageUrl} alt="Preview" className="w-full h-full object-cover" />}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="group">
+                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Expiry Date</label>
                             <input 
                                 type="date"
                                 className="w-full p-3 bg-gray-50 dark:bg-slate-700 dark:text-white rounded-xl border-transparent focus:bg-white dark:focus:bg-slate-600 focus:ring-2 focus:ring-pastel-primary outline-none transition-colors"
                                 value={editingMed?.expiryDate || ''}
                                 onChange={e => setEditingMed({...editingMed, expiryDate: e.target.value})}
-                                required
                             />
                         </div>
                     </div>
                 </div>
 
-                {/* Section 3: Medical Details */}
+                {/* 3. Dosage Details */}
                 <div className="space-y-4">
                      <h3 className="text-sm font-bold text-pastel-primary uppercase tracking-wide border-b border-gray-100 dark:border-slate-700 pb-2 mb-4 flex items-center gap-2">
+                        <Beaker size={16} /> Dosage & Safety
+                    </h3>
+                    <div className="grid grid-cols-1 gap-4">
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Normal Dosage</label>
+                            <input 
+                                className="w-full p-3 bg-gray-50 dark:bg-slate-700 dark:text-white rounded-xl border-transparent focus:bg-white dark:focus:bg-slate-600 focus:ring-2 focus:ring-pastel-primary outline-none transition-colors"
+                                value={editingMed?.dosage?.normal || ''}
+                                onChange={e => setEditingMed({...editingMed, dosage: {...editingMed.dosage, normal: e.target.value}})}
+                                placeholder="e.g. 1 tablet every 8 hours"
+                            />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Max Safe Dose</label>
+                                <input 
+                                    className="w-full p-3 bg-gray-50 dark:bg-slate-700 dark:text-white rounded-xl border-transparent focus:bg-white dark:focus:bg-slate-600 focus:ring-2 focus:ring-pastel-primary outline-none transition-colors"
+                                    value={editingMed?.dosage?.maxSafe || ''}
+                                    onChange={e => setEditingMed({...editingMed, dosage: {...editingMed.dosage, maxSafe: e.target.value}})}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Overdose Warning</label>
+                                <input 
+                                    className="w-full p-3 bg-gray-50 dark:bg-slate-700 dark:text-white rounded-xl border-transparent focus:bg-white dark:focus:bg-slate-600 focus:ring-2 focus:ring-pastel-primary outline-none transition-colors"
+                                    value={editingMed?.dosage?.overdoseWarning || ''}
+                                    onChange={e => setEditingMed({...editingMed, dosage: {...editingMed.dosage, overdoseWarning: e.target.value}})}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* 4. Medical Details */}
+                <div className="space-y-4">
+                    <h3 className="text-sm font-bold text-pastel-primary uppercase tracking-wide border-b border-gray-100 dark:border-slate-700 pb-2 mb-4 flex items-center gap-2">
                         <FileText size={16} /> Medical Details
                     </h3>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Storage Instructions</label>
-                             <input 
-                                className="w-full p-3 bg-gray-50 dark:bg-slate-700 dark:text-white rounded-xl border-transparent focus:bg-white dark:focus:bg-slate-600 focus:ring-2 focus:ring-pastel-primary outline-none transition-colors"
-                                value={editingMed?.details?.storage || ''}
-                                onChange={e => setEditingMed({...editingMed, details: {...editingMed.details, storage: e.target.value}})}
-                                placeholder="e.g. Store below 25°C"
-                             />
-                        </div>
-                        <div>
-                             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Image URL</label>
-                             <input 
-                                className="w-full p-3 bg-gray-50 dark:bg-slate-700 dark:text-white rounded-xl border-transparent focus:bg-white dark:focus:bg-slate-600 focus:ring-2 focus:ring-pastel-primary outline-none transition-colors"
-                                value={editingMed?.imageUrl || ''}
-                                onChange={e => setEditingMed({...editingMed, imageUrl: e.target.value})}
-                                placeholder="https://..."
-                             />
-                        </div>
-                    </div>
-
                     <div>
-                         <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Mechanism of Action</label>
-                         <textarea 
-                            className="w-full p-3 bg-gray-50 dark:bg-slate-700 dark:text-white rounded-xl border-transparent focus:bg-white dark:focus:bg-slate-600 focus:ring-2 focus:ring-pastel-primary outline-none h-20 resize-none transition-colors"
+                        <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Mechanism of Action</label>
+                        <textarea 
+                            className="w-full p-3 bg-gray-50 dark:bg-slate-700 dark:text-white rounded-xl border-transparent focus:bg-white dark:focus:bg-slate-600 focus:ring-2 focus:ring-pastel-primary outline-none transition-colors"
                             value={editingMed?.details?.mechanism || ''}
                             onChange={e => setEditingMed({...editingMed, details: {...editingMed.details, mechanism: e.target.value}})}
-                            placeholder="How the medicine works..."
                         />
                     </div>
-                    
+                    <div>
+                        <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Storage Instructions</label>
+                        <input 
+                            className="w-full p-3 bg-gray-50 dark:bg-slate-700 dark:text-white rounded-xl border-transparent focus:bg-white dark:focus:bg-slate-600 focus:ring-2 focus:ring-pastel-primary outline-none transition-colors"
+                            value={editingMed?.details?.storage || ''}
+                            onChange={e => setEditingMed({...editingMed, details: {...editingMed.details, storage: e.target.value}})}
+                        />
+                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Side Effects (Comma separated)</label>
-                             <input 
+                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Side Effects (Comma Separated)</label>
+                            <input 
                                 className="w-full p-3 bg-gray-50 dark:bg-slate-700 dark:text-white rounded-xl border-transparent focus:bg-white dark:focus:bg-slate-600 focus:ring-2 focus:ring-pastel-primary outline-none transition-colors"
                                 value={editingMed?.details?.sideEffects || ''}
                                 onChange={e => setEditingMed({...editingMed, details: {...editingMed.details, sideEffects: e.target.value}})}
-                                placeholder="e.g. Nausea, Headache"
-                             />
+                            />
                         </div>
                         <div>
-                             <label className="block text-xs font-bold text-red-400 uppercase mb-1">Contraindications (Comma separated)</label>
-                             <input 
-                                className="w-full p-3 bg-red-50 dark:bg-red-900/10 rounded-xl border-red-100 dark:border-red-900/30 focus:bg-white dark:focus:bg-slate-700 focus:ring-2 focus:ring-red-200 outline-none text-red-600 dark:text-red-400 placeholder-red-300 transition-colors"
+                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Contraindications (Comma Separated)</label>
+                            <input 
+                                className="w-full p-3 bg-gray-50 dark:bg-slate-700 dark:text-white rounded-xl border-transparent focus:bg-white dark:focus:bg-slate-600 focus:ring-2 focus:ring-pastel-primary outline-none transition-colors"
                                 value={editingMed?.details?.contraindications || ''}
                                 onChange={e => setEditingMed({...editingMed, details: {...editingMed.details, contraindications: e.target.value}})}
-                                placeholder="e.g. Pregnancy, Liver Disease"
-                             />
+                            />
                         </div>
                     </div>
-
-                    <div>
-                        <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">General Description</label>
-                        <textarea 
-                            className="w-full p-3 bg-gray-50 dark:bg-slate-700 dark:text-white rounded-xl border-transparent focus:bg-white dark:focus:bg-slate-600 focus:ring-2 focus:ring-pastel-primary outline-none h-20 resize-none transition-colors"
-                            value={editingMed?.description || ''}
-                            onChange={e => setEditingMed({...editingMed, description: e.target.value})}
-                        />
-                    </div>
                 </div>
 
-                {/* Section 4: Dosage */}
-                <div className="bg-gray-50 dark:bg-slate-700 p-4 rounded-xl border border-gray-100 dark:border-slate-600 space-y-3 transition-colors">
-                    <h3 className="text-xs font-bold text-gray-500 dark:text-gray-300 uppercase mb-3 flex items-center gap-2"><Activity size={14}/> Dosage Guidelines</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        <input 
-                            className="w-full p-2 bg-white dark:bg-slate-800 dark:text-white rounded-lg border border-gray-200 dark:border-slate-600 text-sm focus:outline-none focus:border-pastel-primary transition-colors"
-                            placeholder="Normal Dosage"
-                            value={editingMed?.dosage?.normal || ''}
-                            onChange={e => setEditingMed({...editingMed, dosage: {...editingMed.dosage!, normal: e.target.value}})}
-                        />
-                         <input 
-                            className="w-full p-2 bg-white dark:bg-slate-800 dark:text-white rounded-lg border border-gray-200 dark:border-slate-600 text-sm focus:outline-none focus:border-pastel-primary transition-colors"
-                            placeholder="Max Safe Limit"
-                            value={editingMed?.dosage?.maxSafe || ''}
-                            onChange={e => setEditingMed({...editingMed, dosage: {...editingMed.dosage!, maxSafe: e.target.value}})}
-                        />
-                         <input 
-                            className="w-full p-2 bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-600 text-sm focus:outline-none focus:border-pastel-primary text-red-500 placeholder-red-300 transition-colors"
-                            placeholder="Overdose Warning"
-                            value={editingMed?.dosage?.overdoseWarning || ''}
-                            onChange={e => setEditingMed({...editingMed, dosage: {...editingMed.dosage!, overdoseWarning: e.target.value}})}
-                        />
-                    </div>
-                </div>
-
-                {/* Section 5: Market Rates (Dynamic List) */}
-                <div className="space-y-3">
-                     <div className="flex justify-between items-center border-b border-gray-100 dark:border-slate-700 pb-2 mb-2">
-                        <h3 className="text-sm font-bold text-pastel-primary uppercase tracking-wide flex items-center gap-2">
-                            <Store size={16} /> Market Rates
-                        </h3>
-                        <button type="button" onClick={addMarketRate} className="text-xs bg-pastel-mint dark:bg-slate-700 text-pastel-primary px-3 py-1.5 rounded-lg font-bold hover:bg-pastel-secondary hover:text-white transition-colors">
-                            + Add Rate
-                        </button>
-                     </div>
-                     
-                     <div className="space-y-2">
-                        {editingMed?.marketRates?.map((rate: MarketRate, idx: number) => (
-                            <div key={idx} className="flex gap-2 items-center">
-                                <input 
-                                    className="flex-[2] p-2 bg-gray-50 dark:bg-slate-700 dark:text-white rounded-lg text-sm border-transparent focus:bg-white dark:focus:bg-slate-600 focus:ring-2 focus:ring-pastel-primary outline-none transition-colors"
-                                    placeholder="Shop Name"
-                                    value={rate.shopName}
-                                    onChange={e => updateMarketRate(idx, 'shopName', e.target.value)}
-                                />
-                                <input 
-                                    type="number"
-                                    className="flex-1 p-2 bg-gray-50 dark:bg-slate-700 dark:text-white rounded-lg text-sm border-transparent focus:bg-white dark:focus:bg-slate-600 focus:ring-2 focus:ring-pastel-primary outline-none transition-colors"
-                                    placeholder="Price"
-                                    value={rate.price}
-                                    onChange={e => updateMarketRate(idx, 'price', Number(e.target.value))}
-                                />
-                                <select 
-                                    className="flex-1 p-2 bg-gray-50 dark:bg-slate-700 dark:text-white rounded-lg text-sm border-transparent focus:bg-white dark:focus:bg-slate-600 focus:ring-2 focus:ring-pastel-primary outline-none transition-colors"
-                                    value={rate.type}
-                                    onChange={e => updateMarketRate(idx, 'type', e.target.value)}
-                                >
-                                    <option value="Branded">Branded</option>
-                                    <option value="Generic">Generic</option>
-                                </select>
-                                <button type="button" onClick={() => removeMarketRate(idx)} className="p-2 text-red-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg">
-                                    <Trash2 size={16} />
-                                </button>
-                            </div>
-                        ))}
-                        {(!editingMed?.marketRates || editingMed.marketRates.length === 0) && (
-                            <p className="text-xs text-gray-400 italic p-2">No market rates added. Add comparison prices to show savings.</p>
-                        )}
-                     </div>
-                </div>
-
-                {/* Actions */}
-                <div className="pt-6 flex gap-3 border-t border-gray-100 dark:border-slate-700">
+                <div className="pt-6 flex gap-3 border-t border-gray-100 dark:border-slate-700 sticky bottom-0 bg-white dark:bg-slate-800 z-10">
                    <button 
                      type="button" 
                      onClick={() => setShowModal(false)}
@@ -741,7 +709,7 @@ const AdminDashboard: React.FC = () => {
                      type="submit"
                      className="flex-1 bg-pastel-primary text-white py-3.5 rounded-xl font-bold shadow-lg shadow-teal-500/20 hover:bg-pastel-secondary transition-all flex justify-center items-center gap-2"
                    >
-                     <Save size={18} /> Save Changes
+                     <Save size={18} /> Save Medicine
                    </button>
                 </div>
              </form>
