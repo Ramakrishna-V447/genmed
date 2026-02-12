@@ -10,6 +10,7 @@ export interface Medicine {
   name: string; // Generic Name primarily
   brandExample: string;
   saltComposition: string;
+  batchNumber: string; // New field for batch tracking
   category: MedicineCategory;
   commonUse: string[];
   description: string;
@@ -52,6 +53,7 @@ export interface User {
   id: string;
   email: string;
   name: string;
+  phone?: string; // Added phone number for SMS notifications
   role: 'user' | 'admin';
   password?: string; // Only used internally in DB, stripped for frontend context
   createdAt: number;
@@ -61,7 +63,7 @@ export interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  register: (name: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  register: (name: string, email: string, phone: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
 }
 
@@ -107,4 +109,14 @@ export interface EmailLog {
   body: string; // HTML content
   sentAt: number;
   status: 'sent' | 'failed';
+}
+
+export interface AdminNotification {
+    id: number;
+    type: 'registration' | 'login';
+    message: string;
+    user_email: string;
+    ip_address: string;
+    created_at: number;
+    read: number;
 }

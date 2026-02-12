@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Medicine } from '../types';
 import { 
   ArrowRight, Activity, Thermometer, ShieldAlert, Heart, ShoppingCart, Check,
-  Flame, Wind, Pill, Droplets, HeartPulse, Sun
+  Flame, Wind, Pill, Droplets, HeartPulse, Sun, AlertTriangle
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useBookmarks } from '../context/BookmarkContext';
@@ -22,6 +22,17 @@ const MedicineCard: React.FC<MedicineCardProps> = ({ medicine }) => {
   
   const saved = isBookmarked(medicine.id);
 
+  // Check Expiry Logic
+  const checkExpiringSoon = (dateStr: string) => {
+    const today = new Date();
+    const expiry = new Date(dateStr);
+    const diffTime = expiry.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays > 0 && diffDays <= 30; // Expiring in 30 days
+  };
+
+  const isExpiringSoon = checkExpiringSoon(medicine.expiryDate);
+
   const toggleBookmark = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -35,6 +46,8 @@ const MedicineCard: React.FC<MedicineCardProps> = ({ medicine }) => {
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (isExpiringSoon) return;
+    
     addToCart(medicine);
     setIsAdded(true);
     setTimeout(() => setIsAdded(false), 2000);
@@ -59,18 +72,18 @@ const MedicineCard: React.FC<MedicineCardProps> = ({ medicine }) => {
 
   return (
     <Link to={`/medicine/${medicine.id}`} className="block h-full group">
-      <div className="bg-white rounded-3xl border border-gray-100 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_24px_rgba(0,0,0,0.06)] transition-all duration-500 transform hover:-translate-y-1 h-full flex flex-col overflow-hidden relative">
+      <div className={`bg-white rounded-3xl border ${isExpiringSoon ? 'border-orange-200' : 'border-gray-100'} shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_24px_rgba(0,0,0,0.06)] transition-all duration-500 transform hover:-translate-y-1 h-full flex flex-col overflow-hidden relative`}>
         
-        {/* Image Section - Increased height and prominence */}
-        <div className="h-52 overflow-hidden relative bg-gray-50">
+        {/* Image Section */}
+        <div className="h-60 overflow-hidden relative bg-gray-50">
            <img 
              src={medicine.imageUrl} 
              alt={`${medicine.name} - Generic equivalent for ${medicine.brandExample}`}
-             className="w-full h-full object-cover opacity-95 group-hover:opacity-100 group-hover:scale-110 transition-transform duration-700 ease-out img-soft"
+             className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out img-soft ${isExpiringSoon ? 'opacity-70 grayscale-[0.5]' : 'opacity-95 group-hover:opacity-100'}`}
              loading="lazy"
            />
-           {/* Gradient Overlay for text readability on image */}
-           <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-80 transition-opacity duration-300 group-hover:opacity-60"></div>
+           
+           <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-60 transition-opacity duration-300 group-hover:opacity-50"></div>
            
            <button
              onClick={toggleBookmark}
@@ -84,26 +97,33 @@ const MedicineCard: React.FC<MedicineCardProps> = ({ medicine }) => {
              <Heart size={18} className={saved ? 'fill-current' : ''} />
            </button>
 
-           <div className="absolute bottom-3 left-3 flex items-center gap-2 z-10">
-             <span className="text-[11px] font-bold uppercase tracking-wider text-gray-700 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/40 flex items-center gap-1.5 shadow-sm">
+           <div className="absolute bottom-3 left-3 flex flex-col items-start gap-2 z-10">
+             <span className="text-[11px] font-bold uppercase tracking-wider text-gray-800 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/40 flex items-center gap-1.5 shadow-sm">
                 {getIcon()} {medicine.category}
              </span>
+             {isExpiringSoon && (
+                 <span className="text-[10px] font-bold uppercase tracking-wider text-orange-700 bg-orange-100/95 backdrop-blur-md px-3 py-1.5 rounded-full border border-orange-200 flex items-center gap-1.5 shadow-sm animate-pulse">
+                    <AlertTriangle size={12} /> Expiring Soon
+                 </span>
+             )}
            </div>
 
            {/* Quick Add to Cart Button */}
            {isAuthenticated && (
              <button
                onClick={handleAddToCart}
+               disabled={isExpiringSoon}
                className={`absolute bottom-3 right-3 p-2.5 rounded-full shadow-lg transition-all duration-500 transform z-10 flex items-center gap-2 ${
-                 isAdded
-                   ? 'bg-pastel-secondary text-white translate-y-0 opacity-100 scale-105'
-                   : 'bg-pastel-primary text-white hover:bg-pastel-secondary translate-y-10 opacity-0 group-hover:translate-y-0 group-hover:opacity-100'
+                 isExpiringSoon
+                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed translate-y-0 opacity-100'
+                   : isAdded
+                     ? 'bg-pastel-secondary text-white translate-y-0 opacity-100 scale-105'
+                     : 'bg-pastel-primary text-white hover:bg-pastel-secondary translate-y-10 opacity-0 group-hover:translate-y-0 group-hover:opacity-100'
                }`}
-               title="Add to Cart"
-               aria-label="Add to cart"
+               title={isExpiringSoon ? "Unavailable - Expiring Soon" : "Add to Cart"}
              >
-               {isAdded ? <Check size={18} /> : <ShoppingCart size={18} />}
-               {isAdded && <span className="text-xs font-bold pr-1 animate-fade-in">Added</span>}
+               {isExpiringSoon ? <ShieldAlert size={18} /> : isAdded ? <Check size={18} /> : <ShoppingCart size={18} />}
+               {isAdded && !isExpiringSoon && <span className="text-xs font-bold pr-1 animate-fade-in">Added</span>}
              </button>
            )}
         </div>

@@ -18,9 +18,11 @@ const CheckoutPage: React.FC = () => {
   const DELIVERY_THRESHOLD = 200;
   const DELIVERY_FEE = 40;
   const PLATFORM_FEE = 10;
-  
+  const GST_RATE = 0.12;
+
+  const gstAmount = cartTotal * GST_RATE;
   const deliveryCharge = cartTotal > DELIVERY_THRESHOLD ? 0 : DELIVERY_FEE;
-  const finalTotal = cartTotal + deliveryCharge + PLATFORM_FEE;
+  const finalTotal = cartTotal + gstAmount + deliveryCharge + PLATFORM_FEE;
   
   // Form State
   const [formData, setFormData] = useState({
@@ -218,8 +220,12 @@ const CheckoutPage: React.FC = () => {
                      <h3 className="text-lg font-bold text-gray-800 mb-4">Bill Details</h3>
                      <div className="space-y-3 text-sm mb-6">
                         <div className="flex justify-between text-gray-600">
-                             <span>Item Total</span>
+                             <span>Item Subtotal</span>
                              <span>₹{cartTotal.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between text-gray-600">
+                             <span>GST (12%)</span>
+                             <span>₹{gstAmount.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between text-gray-600">
                              <span>Delivery Fee</span>

@@ -97,14 +97,14 @@ const Navbar: React.FC = () => {
                 )}
             </Link>
 
-            {/* Admin Block Icon - Swapped to ShieldCheck */}
+            {/* Admin Block Icon - Swapped to ShieldCheck with Lighter Colors */}
             {(!isAuthenticated || isAdmin) && (
                  <Link 
                     to={isAdmin ? "/admin" : "/admin/login"} 
                     className={`relative p-2.5 rounded-full transition-all hover:scale-105 ${
                         location.pathname.startsWith('/admin')
-                        ? 'bg-pastel-primary text-white shadow-lg shadow-teal-500/20' 
-                        : 'text-gray-400 hover:text-pastel-primary hover:bg-pastel-mint/50'
+                        ? 'bg-pastel-secondary text-white shadow-lg shadow-sky-500/20' 
+                        : 'text-gray-300 hover:text-pastel-secondary hover:bg-pastel-blue/30'
                     }`}
                     title="Admin Access"
                 >

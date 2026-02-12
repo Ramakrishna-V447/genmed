@@ -1,20 +1,22 @@
 
-import { Medicine, Order, CartItem, Address, ActivityLog, User, EmailLog } from '../types';
+import { Medicine, Order, CartItem, Address, ActivityLog, User, EmailLog, AdminNotification } from '../types';
 import { MEDICINES } from '../constants';
 
 // Keys for localStorage
 const DB_KEYS = {
-  USERS: 'medigen_db_users',
   ORDERS: 'medigen_db_orders',
   MEDICINES: 'medigen_db_medicines',
   LOGS: 'medigen_db_logs',
   EMAILS: 'medigen_db_emails',
+  USERS: 'medigen_db_users_fallback', // New key for offline users
   // Base keys for dynamic user data
   CART_PREFIX: 'medigen_cart_',
   BOOKMARK_PREFIX: 'medigen_bookmarks_'
 };
 
-// Simulate network delay
+const API_URL = 'http://localhost:5000/api';
+
+// Simulate network delay for LS operations
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 // --- INTERNAL HELPERS ---
@@ -35,85 +37,148 @@ const setStorage = <T>(key: string, value: T): void => {
   }
 };
 
-// --- INITIALIZATION ---
-// Ensure Admin user exists on first load
-const seedUsers = () => {
-    const users = getStorage<User[]>(DB_KEYS.USERS, []);
-    const adminExists = users.some(u => u.email === 'admin@medigen.com');
-    if (!adminExists) {
-        const adminUser: User = {
-            id: 'usr_admin',
-            name: 'Super Admin',
-            email: 'admin@medigen.com',
-            password: 'admin', // In a real app, this would be hashed
-            role: 'admin',
-            createdAt: Date.now()
-        };
-        users.push(adminUser);
-        setStorage(DB_KEYS.USERS, users);
-        console.log("Database: Seeded Admin User");
-    }
-};
-
-seedUsers();
-
 export const db = {
-  // --- USER & AUTH ---
+  // --- USER & AUTH (HYBRID: API -> FALLBACK) ---
 
-  registerUser: async (name: string, email: string, password: string): Promise<User> => {
-      await delay(800);
-      const users = getStorage<User[]>(DB_KEYS.USERS, []);
-      
-      // Strict check: Block admin email registration
-      if (email.toLowerCase() === 'admin@medigen.com') {
-          throw new Error("This email is reserved for administrative access.");
+  registerUser: async (name: string, email: string, phone: string, password: string): Promise<User> => {
+      try {
+          // 1. Try Backend
+          const response = await fetch(`${API_URL}/register`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ name, email, phone, password })
+          });
+
+          if (response.ok) {
+              const data = await response.json();
+              await db.logActivity('User Registration', `New user registered: ${email}`);
+              return data as User;
+          } else {
+             const errData = await response.json().catch(() => ({}));
+             throw new Error(errData.error || "Registration failed on server");
+          }
+
+      } catch (error: any) {
+          console.warn("Backend unavailable or failed, switching to offline mode:", error.message);
+          
+          // 2. Local Fallback
+          await delay(500);
+          const users = getStorage<User[]>(DB_KEYS.USERS, []);
+          
+          if (users.find(u => u.email === email)) {
+              throw new Error("User already exists (Offline Mode)");
+          }
+
+          const newUser: User = {
+              id: `usr_local_${Date.now()}`,
+              name,
+              email,
+              phone,
+              role: 'user',
+              createdAt: Date.now(),
+              password: password 
+          };
+
+          users.push(newUser);
+          setStorage(DB_KEYS.USERS, users);
+          
+          const { password: _, ...userReturn } = newUser;
+          return userReturn;
       }
-
-      if (users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
-          throw new Error("User already exists with this email.");
-      }
-
-      const newUser: User = {
-          id: `usr_${Date.now()}`,
-          name,
-          email,
-          password, // NOTE: In production, never store plain text passwords!
-          role: 'user',
-          createdAt: Date.now()
-      };
-
-      users.push(newUser);
-      setStorage(DB_KEYS.USERS, users);
-      await db.logActivity('User Registration', `New user registered: ${email}`);
-      return newUser;
   },
 
   authenticateUser: async (email: string, password: string): Promise<User> => {
-      await delay(600);
-      const users = getStorage<User[]>(DB_KEYS.USERS, []);
-      const user = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
-      
-      if (!user) {
-          throw new Error("Invalid email or password.");
+      try {
+          // 1. Try Backend
+          const response = await fetch(`${API_URL}/login`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email, password })
+          });
+
+          if (response.ok) {
+              const data = await response.json();
+              return data as User;
+          } else {
+             const errData = await response.json().catch(() => ({}));
+             if (response.status === 401) throw new Error("Invalid credentials");
+             if (response.status < 500) throw new Error(errData.error || "Login failed");
+             throw new Error("Server Error"); // Trigger fallback
+          }
+
+      } catch (error: any) {
+          console.warn("Backend unavailable, checking local records:", error.message);
+
+          // 2. Local Fallback
+          await delay(500);
+
+          // Hardcoded Admin
+          if (email === 'admin@medigen.com' && password === 'admin') {
+              return {
+                  id: 'usr_admin',
+                  name: 'Super Admin',
+                  email: 'admin@medigen.com',
+                  phone: '+91 98765 43210',
+                  role: 'admin',
+                  createdAt: Date.now()
+              };
+          }
+
+          // Check Offline Users
+          const users = getStorage<User[]>(DB_KEYS.USERS, []);
+          const user = users.find(u => u.email === email && u.password === password);
+
+          if (user) {
+              const { password: _, ...userReturn } = user;
+              return userReturn;
+          }
+
+          throw new Error("Invalid credentials or Server Unavailable");
       }
-      
-      // Return user without password
-      const { password: _, ...safeUser } = user;
-      return safeUser as User;
   },
 
-  getUserByEmail: async (email: string): Promise<User | undefined> => {
-      await delay(200);
-      const users = getStorage<User[]>(DB_KEYS.USERS, []);
-      const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-      if (user) {
-           const { password: _, ...safeUser } = user;
-           return safeUser as User;
+  sendOtp: async (email: string): Promise<boolean> => {
+      const response = await fetch(`${API_URL}/send-otp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+      });
+      if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.error || "Failed to send OTP");
       }
-      return undefined;
+      return true;
   },
 
-  // --- MEDICINES ---
+  verifyOtp: async (email: string, otp: string): Promise<User> => {
+      const response = await fetch(`${API_URL}/verify-otp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, otp })
+      });
+      if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.error || "Invalid OTP");
+      }
+      const data = await response.json();
+      return data as User;
+  },
+
+  // --- ADMIN NOTIFICATIONS ---
+  getAdminNotifications: async (): Promise<AdminNotification[]> => {
+      try {
+          const response = await fetch(`${API_URL}/admin/notifications`);
+          if (response.ok) {
+              return await response.json();
+          }
+          return [];
+      } catch (e) {
+          console.error("Failed to fetch notifications");
+          return [];
+      }
+  },
+
+  // --- MEDICINES (LocalStorage) ---
   
   getMedicines: async (): Promise<Medicine[]> => {
     await delay(300);
@@ -155,7 +220,7 @@ export const db = {
     await db.logActivity('Medicine Delete', `Deleted medicine: ${name}`);
   },
 
-  // --- ORDERS ---
+  // --- ORDERS (LocalStorage) ---
   
   saveOrder: async (
     items: CartItem[], 
@@ -181,7 +246,6 @@ export const db = {
     orders.push(newOrder);
     setStorage(DB_KEYS.ORDERS, orders);
 
-    // Import here to avoid circular dependency issues if possible, or handle externally
     const { sendOrderConfirmationEmail } = await import('./emailService');
     sendOrderConfirmationEmail(newOrder).catch(err => console.error("Failed to process email", err));
     
@@ -218,7 +282,7 @@ export const db = {
       .sort((a, b) => b.createdAt - a.createdAt);
   },
 
-  // --- EMAILS ---
+  // --- EMAILS (LocalStorage) ---
 
   saveEmail: async (to: string, subject: string, body: string): Promise<void> => {
       const emails = getStorage<EmailLog[]>(DB_KEYS.EMAILS, []);
@@ -239,7 +303,7 @@ export const db = {
       return getStorage<EmailLog[]>(DB_KEYS.EMAILS, []);
   },
 
-  // --- LOGS ---
+  // --- LOGS (LocalStorage) ---
 
   logActivity: async (action: string, details: string) => {
     const logs = getStorage<ActivityLog[]>(DB_KEYS.LOGS, []);
@@ -260,7 +324,7 @@ export const db = {
     return getStorage<ActivityLog[]>(DB_KEYS.LOGS, []);
   },
 
-  // --- CART & BOOKMARKS ---
+  // --- CART & BOOKMARKS (LocalStorage) ---
 
   getCart: (userId: string | null): CartItem[] => {
     const key = userId ? `${DB_KEYS.CART_PREFIX}${userId}` : 'medigen_cart_guest';
@@ -280,5 +344,15 @@ export const db = {
   saveBookmarks: (userId: string | null, ids: string[]): void => {
     const key = userId ? `${DB_KEYS.BOOKMARK_PREFIX}${userId}` : 'medigen_bookmarks_guest';
     setStorage(key, ids);
-  }
+  },
+
+  getUserByEmail: async (email: string): Promise<User | undefined> => {
+      const users = getStorage<User[]>(DB_KEYS.USERS, []);
+      const user = users.find(u => u.email === email);
+      if (user) {
+          const { password: _, ...userReturn } = user;
+          return userReturn;
+      }
+      return undefined; 
+  },
 };

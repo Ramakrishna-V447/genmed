@@ -17,9 +17,11 @@ const CartPage: React.FC = () => {
   const DELIVERY_THRESHOLD = 200;
   const DELIVERY_FEE = 40;
   const PLATFORM_FEE = 10;
+  const GST_RATE = 0.12; // 12% GST
 
+  const gstAmount = cartTotal * GST_RATE;
   const deliveryCharge = cartTotal > DELIVERY_THRESHOLD ? 0 : DELIVERY_FEE;
-  const finalTotal = cartTotal + deliveryCharge + PLATFORM_FEE;
+  const finalTotal = cartTotal + gstAmount + deliveryCharge + PLATFORM_FEE;
   const savings = items.reduce((acc, i) => acc + (i.brandedPrice - i.genericPrice) * i.quantity, 0);
 
   useEffect(() => {
@@ -91,6 +93,7 @@ const CartPage: React.FC = () => {
                   <div className="flex-1 text-center sm:text-left">
                     <h3 className="text-lg font-bold text-gray-800 mb-1">{item.name}</h3>
                     <p className="text-sm text-gray-400 mb-2">Generic for {item.brandExample}</p>
+                    <div className="text-xs text-gray-500 mb-2">Batch: {item.batchNumber}</div>
                     <div className="text-pastel-primary font-bold text-lg">₹{item.genericPrice}</div>
                   </div>
 
@@ -155,8 +158,12 @@ const CartPage: React.FC = () => {
                 
                 <div className="space-y-4 mb-8">
                     <div className="flex justify-between text-gray-500 text-sm">
-                        <span>Items Total ({itemCount})</span>
+                        <span>Items Subtotal ({itemCount})</span>
                         <span className="font-medium text-gray-700">₹{cartTotal.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-gray-500 text-sm">
+                        <span>GST (12%)</span>
+                        <span className="font-medium text-gray-700">₹{gstAmount.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-gray-500 text-sm">
                         <span>Delivery Fee</span>

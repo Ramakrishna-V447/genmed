@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Lock, Mail, User as UserIcon, Loader2, AlertCircle, ArrowRight, Check } from 'lucide-react';
+import { X, Lock, Mail, User as UserIcon, Loader2, AlertCircle, ArrowRight, Check, Phone, KeyRound } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 interface AuthModalProps {
@@ -11,27 +11,45 @@ interface AuthModalProps {
 }
 
 const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialEmail = '' }) => {
-  const [isLogin, setIsLogin] = useState(true);
+  const [authMode, setAuthMode] = useState<'login' | 'register' | 'otp'>('login');
   const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [otp, setOtp] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   
-  const { login, register } = useAuth();
+  const { login, register, requestOtp, loginWithOtp } = useAuth();
 
   useEffect(() => {
     if (isOpen) {
       setEmail(initialEmail || '');
       setPassword('');
       setName('');
+      setPhone('');
+      setOtp('');
+      setOtpSent(false);
       setError('');
-      if (initialEmail) setIsLogin(true);
+      if (initialEmail) setAuthMode('login');
     }
   }, [isOpen, initialEmail]);
 
   if (!isOpen) return null;
+
+  const handleRequestOtp = async () => {
+      setError('');
+      setLoading(true);
+      const res = await requestOtp(email);
+      setLoading(false);
+      if (res.success) {
+          setOtpSent(true);
+      } else {
+          setError(res.error || "Failed to send OTP");
+      }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,27 +57,29 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialEmail = '
     setLoading(true);
 
     try {
-        await new Promise(resolve => setTimeout(resolve, 800));
-
-        if (isLogin) {
+        if (authMode === 'login') {
             const res = await login(email, password);
-            if (res.success) {
-                onClose();
+            if (res.success) onClose();
+            else setError(res.error || "Login failed");
+        } else if (authMode === 'register') {
+            const res = await register(name, email, phone, password);
+            if (res.success) onClose();
+            else setError(res.error || "Registration failed");
+        } else if (authMode === 'otp') {
+            if (!otpSent) {
+                await handleRequestOtp();
             } else {
-                setError(res.error || "Login failed");
-            }
-        } else {
-            const res = await register(name, email, password);
-            if (res.success) {
-                onClose();
-            } else {
-                setError(res.error || "Registration failed");
+                const res = await loginWithOtp(email, otp);
+                if (res.success) onClose();
+                else setError(res.error || "Invalid OTP");
             }
         }
     } catch (err) {
         setError("An unexpected error occurred.");
     } finally {
-        setLoading(false);
+        if (authMode !== 'otp' || (authMode === 'otp' && otpSent)) {
+            setLoading(false);
+        }
     }
   };
 
@@ -85,17 +105,25 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialEmail = '
 
             <div className="flex p-1 bg-gray-200/50 rounded-xl relative">
                 <div 
-                    className={`absolute inset-y-1 w-1/2 bg-white rounded-lg shadow-sm transition-all duration-300 ease-out transform ${isLogin ? 'translate-x-0' : 'translate-x-full'}`}
+                    className={`absolute inset-y-1 w-1/3 bg-white rounded-lg shadow-sm transition-all duration-300 ease-out transform ${
+                        authMode === 'login' ? 'translate-x-0' : authMode === 'otp' ? 'translate-x-full' : 'translate-x-[200%]'
+                    }`}
                 ></div>
                 <button 
-                    onClick={() => { setIsLogin(true); setError(''); }}
-                    className={`flex-1 relative z-10 py-2.5 text-sm font-bold transition-colors duration-300 ${isLogin ? 'text-gray-800' : 'text-gray-500 hover:text-gray-700'}`}
+                    onClick={() => { setAuthMode('login'); setError(''); }}
+                    className={`flex-1 relative z-10 py-2.5 text-xs font-bold transition-colors duration-300 ${authMode === 'login' ? 'text-gray-800' : 'text-gray-500 hover:text-gray-700'}`}
                 >
-                    Sign In
+                    Password
                 </button>
                 <button 
-                    onClick={() => { setIsLogin(false); setError(''); }}
-                    className={`flex-1 relative z-10 py-2.5 text-sm font-bold transition-colors duration-300 ${!isLogin ? 'text-gray-800' : 'text-gray-500 hover:text-gray-700'}`}
+                    onClick={() => { setAuthMode('otp'); setError(''); }}
+                    className={`flex-1 relative z-10 py-2.5 text-xs font-bold transition-colors duration-300 ${authMode === 'otp' ? 'text-gray-800' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                    OTP Login
+                </button>
+                <button 
+                    onClick={() => { setAuthMode('register'); setError(''); }}
+                    className={`flex-1 relative z-10 py-2.5 text-xs font-bold transition-colors duration-300 ${authMode === 'register' ? 'text-gray-800' : 'text-gray-500 hover:text-gray-700'}`}
                 >
                     Register
                 </button>
@@ -111,8 +139,8 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialEmail = '
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            {!isLogin && (
-              <div className="group">
+            {authMode === 'register' && (
+              <div className="group animate-fade-in">
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5 ml-1">Full Name</label>
                 <div className="relative">
                     <UserIcon className="absolute left-4 top-3.5 h-5 w-5 text-gray-400 group-focus-within:text-pastel-primary transition-colors" />
@@ -137,35 +165,79 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialEmail = '
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-4 focus:ring-pastel-primary/10 focus:border-pastel-primary outline-none transition-all font-medium text-gray-700 placeholder-gray-400"
+                  disabled={authMode === 'otp' && otpSent}
+                  className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-4 focus:ring-pastel-primary/10 focus:border-pastel-primary outline-none transition-all font-medium text-gray-700 placeholder-gray-400 disabled:bg-gray-100 disabled:text-gray-500"
                   placeholder="name@example.com"
                 />
               </div>
             </div>
 
-            <div className="group">
-               <div className="flex justify-between items-center mb-1.5 ml-1">
-                    <label className="block text-xs font-bold text-gray-500 uppercase">Password</label>
-                    {isLogin && (
-                        <button type="button" className="text-xs font-bold text-pastel-primary hover:text-pastel-secondary transition-colors">
-                            Forgot?
-                        </button>
-                    )}
-               </div>
-              <div className="relative">
-                <Lock className="absolute left-4 top-3.5 h-5 w-5 text-gray-400 group-focus-within:text-pastel-primary transition-colors" />
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-4 focus:ring-pastel-primary/10 focus:border-pastel-primary outline-none transition-all font-medium text-gray-700 placeholder-gray-400"
-                  placeholder="••••••••"
-                />
+            {authMode === 'register' && (
+              <div className="group animate-fade-in">
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5 ml-1">Phone Number</label>
+                <div className="relative">
+                    <Phone className="absolute left-4 top-3.5 h-5 w-5 text-gray-400 group-focus-within:text-pastel-primary transition-colors" />
+                    <input
+                    type="tel"
+                    required
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-4 focus:ring-pastel-primary/10 focus:border-pastel-primary outline-none transition-all font-medium text-gray-700 placeholder-gray-400"
+                    placeholder="+91 98765 43210"
+                    />
+                </div>
               </div>
-            </div>
+            )}
 
-            {isLogin && (
+            {(authMode !== 'otp') && (
+                <div className="group animate-fade-in">
+                <div className="flex justify-between items-center mb-1.5 ml-1">
+                        <label className="block text-xs font-bold text-gray-500 uppercase">Password</label>
+                        {authMode === 'login' && (
+                            <button type="button" className="text-xs font-bold text-pastel-primary hover:text-pastel-secondary transition-colors">
+                                Forgot?
+                            </button>
+                        )}
+                </div>
+                <div className="relative">
+                    <Lock className="absolute left-4 top-3.5 h-5 w-5 text-gray-400 group-focus-within:text-pastel-primary transition-colors" />
+                    <input
+                    type="password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-4 focus:ring-pastel-primary/10 focus:border-pastel-primary outline-none transition-all font-medium text-gray-700 placeholder-gray-400"
+                    placeholder="••••••••"
+                    />
+                </div>
+                </div>
+            )}
+
+            {authMode === 'otp' && otpSent && (
+                <div className="group animate-slide-up">
+                    <div className="flex justify-between items-center mb-1.5 ml-1">
+                        <label className="block text-xs font-bold text-gray-500 uppercase">Enter OTP</label>
+                        <button type="button" onClick={() => setOtpSent(false)} className="text-xs font-bold text-pastel-primary">
+                            Change Email?
+                        </button>
+                    </div>
+                    <div className="relative">
+                        <KeyRound className="absolute left-4 top-3.5 h-5 w-5 text-gray-400 group-focus-within:text-pastel-primary transition-colors" />
+                        <input
+                        type="text"
+                        required
+                        value={otp}
+                        onChange={(e) => setOtp(e.target.value)}
+                        className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-4 focus:ring-pastel-primary/10 focus:border-pastel-primary outline-none transition-all font-medium text-gray-700 placeholder-gray-400 tracking-widest"
+                        placeholder="123456"
+                        maxLength={6}
+                        />
+                    </div>
+                    <p className="text-xs text-gray-400 mt-2 text-center">We've sent a code to your email & registered phone.</p>
+                </div>
+            )}
+
+            {authMode === 'login' && (
                 <label className="flex items-center gap-2 cursor-pointer group">
                     <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${rememberMe ? 'bg-pastel-primary border-pastel-primary' : 'bg-white border-gray-300 group-hover:border-pastel-primary'}`}>
                         {rememberMe && <Check size={12} className="text-white" />}
@@ -184,7 +256,9 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialEmail = '
                   <Loader2 className="animate-spin" size={20} />
               ) : (
                   <>
-                    {isLogin ? 'Sign In' : 'Create Account'}
+                    {authMode === 'register' ? 'Create Account' : 
+                     authMode === 'otp' && !otpSent ? 'Send OTP' : 
+                     authMode === 'otp' && otpSent ? 'Verify & Login' : 'Sign In'}
                     <ArrowRight size={18} />
                   </>
               )}

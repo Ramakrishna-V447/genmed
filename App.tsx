@@ -1,5 +1,5 @@
 
-import React, { PropsWithChildren } from 'react';
+import React, { PropsWithChildren, useEffect, useState } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import ChatBot from './components/ChatBot';
@@ -12,10 +12,40 @@ import StoresPage from './pages/StoresPage';
 import OrderTrackingPage from './pages/OrderTrackingPage';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminLoginPage from './pages/admin/AdminLoginPage';
-import { AuthProvider, useAuth } from './context/AuthContext';
+import { AuthProvider } from './context/AuthContext';
 import { BookmarkProvider } from './context/BookmarkContext';
 import { CartProvider } from './context/CartContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { Bell } from 'lucide-react';
+
+// Simple Toast Component
+const ToastContainer = () => {
+    const [toast, setToast] = useState<{ message: string; show: boolean } | null>(null);
+
+    useEffect(() => {
+        const handleToast = (e: CustomEvent) => {
+            setToast({ message: e.detail.message, show: true });
+            setTimeout(() => setToast(null), 4000);
+        };
+
+        window.addEventListener('medigen-toast' as any, handleToast);
+        return () => window.removeEventListener('medigen-toast' as any, handleToast);
+    }, []);
+
+    if (!toast) return null;
+
+    return (
+        <div className={`fixed top-24 right-4 z-[60] bg-slate-900 text-white p-4 rounded-xl shadow-2xl flex items-start gap-3 max-w-sm animate-fade-in transition-all ${toast.show ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-full'}`}>
+            <div className="bg-pastel-primary/20 p-2 rounded-full shrink-0">
+                <Bell size={18} className="text-pastel-secondary" />
+            </div>
+            <div>
+                <h4 className="font-bold text-sm text-pastel-secondary mb-0.5">Notification Sent</h4>
+                <p className="text-xs text-slate-300 leading-relaxed">{toast.message}</p>
+            </div>
+        </div>
+    );
+};
 
 // Layout wrapper for User Panel (Navbar + Footer + ChatBot)
 const UserLayout: React.FC<PropsWithChildren> = ({ children }) => (
@@ -69,6 +99,7 @@ const App = () => {
             <HashRouter>
               <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-800 dark:text-slate-100 transition-colors duration-300">
                  <AppRoutes />
+                 <ToastContainer />
               </div>
             </HashRouter>
           </CartProvider>

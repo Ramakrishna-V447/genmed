@@ -2,8 +2,14 @@
 import React, { createContext, useContext, useState, useEffect, PropsWithChildren } from 'react';
 import { AuthState, User } from '../types';
 import { db } from '../services/db';
+import { sendLoginAlert } from '../services/emailService';
 
-const AuthContext = createContext<AuthState | undefined>(undefined);
+interface AuthContextType extends AuthState {
+    loginWithOtp: (email: string, otp: string) => Promise<{ success: boolean; error?: string }>;
+    requestOtp: (email: string) => Promise<{ success: boolean; error?: string }>;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: PropsWithChildren) => {
   const [user, setUser] = useState<User | null>(null);
@@ -26,17 +32,48 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
         setUser(loggedUser);
         sessionStorage.setItem('medigen_session_user', JSON.stringify(loggedUser));
         await db.logActivity('Login', `User logged in: ${email}`);
+        
+        // Trigger Email/SMS Notification
+        sendLoginAlert(loggedUser).catch(err => console.error("Failed to send login alert", err));
+
         return { success: true };
     } catch (e: any) {
         return { success: false, error: e.message || "Login failed" };
     }
   };
 
-  const register = async (name: string, email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+  const loginWithOtp = async (email: string, otp: string): Promise<{ success: boolean; error?: string }> => {
       try {
-          const newUser = await db.registerUser(name, email, password);
+          const loggedUser = await db.verifyOtp(email, otp);
+          setUser(loggedUser);
+          sessionStorage.setItem('medigen_session_user', JSON.stringify(loggedUser));
+          await db.logActivity('OTP Login', `User logged in via OTP: ${email}`);
+          
+          sendLoginAlert(loggedUser).catch(err => console.error("Failed to send login alert", err));
+          return { success: true };
+      } catch (e: any) {
+          return { success: false, error: e.message || "Invalid OTP" };
+      }
+  };
+
+  const requestOtp = async (email: string): Promise<{ success: boolean; error?: string }> => {
+      try {
+          await db.sendOtp(email);
+          return { success: true };
+      } catch (e: any) {
+          return { success: false, error: e.message || "Failed to send OTP" };
+      }
+  };
+
+  const register = async (name: string, email: string, phone: string, password: string): Promise<{ success: boolean; error?: string }> => {
+      try {
+          const newUser = await db.registerUser(name, email, phone, password);
           setUser(newUser);
           sessionStorage.setItem('medigen_session_user', JSON.stringify(newUser));
+          
+          // Trigger Notification for new registration login
+          sendLoginAlert(newUser).catch(err => console.error("Failed to send login alert", err));
+
           return { success: true };
       } catch (e: any) {
           return { success: false, error: e.message || "Registration failed" };
@@ -52,7 +89,7 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, register, logout }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, loginWithOtp, requestOtp, register, logout }}>
       {children}
     </AuthContext.Provider>
   );

@@ -2,7 +2,7 @@
 import React, { useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { MEDICINES } from '../constants';
-import { ArrowLeft, Heart, ShoppingCart, Zap, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Heart, ShoppingCart, Zap, CheckCircle2, AlertTriangle, ShieldOff } from 'lucide-react';
 import { PriceComparisonBlock, UsageBlock, DosageBlock, DetailsBlock } from '../components/blocks/MedicineDetailBlocks';
 import { useBookmarks } from '../context/BookmarkContext';
 import { useCart } from '../context/CartContext';
@@ -31,6 +31,17 @@ const MedicineDetailPage: React.FC = () => {
     );
   }
 
+  // Check Expiry Logic
+  const checkExpiringSoon = (dateStr: string) => {
+    const today = new Date();
+    const expiry = new Date(dateStr);
+    const diffTime = expiry.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays > 0 && diffDays <= 30; // Expiring in 30 days
+  };
+
+  const isExpiringSoon = checkExpiringSoon(medicine.expiryDate);
+
   const saved = isBookmarked(medicine.id);
   const toggleBookmark = () => {
     if (saved) {
@@ -41,12 +52,14 @@ const MedicineDetailPage: React.FC = () => {
   };
 
   const handleAddToCart = () => {
+    if (isExpiringSoon) return;
     addToCart(medicine);
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
   };
 
   const handleBuyNow = () => {
+    if (isExpiringSoon) return;
     addToCart(medicine);
     navigate('/cart');
   };
@@ -61,7 +74,10 @@ const MedicineDetailPage: React.FC = () => {
                 <ArrowLeft size={20} />
             </button>
             <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-pastel-dark line-clamp-1">{medicine.name}</h1>
+                <h1 className="text-xl sm:text-2xl font-bold text-pastel-dark line-clamp-1 flex items-center gap-2">
+                    {medicine.name}
+                    {isExpiringSoon && <span className="text-xs bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full border border-orange-200">Expiring Soon</span>}
+                </h1>
                 <p className="text-xs sm:text-sm text-gray-400 hidden sm:block">Generic for <span className="font-medium text-gray-600">{medicine.brandExample}</span></p>
             </div>
           </div>
@@ -82,7 +98,7 @@ const MedicineDetailPage: React.FC = () => {
 
       <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
         
-        {/* E-commerce Action Block (Mobile Top / Desktop Sidebar Style) */}
+        {/* E-commerce Action Block (Mobile Top) */}
         <div className="lg:hidden bg-white p-5 rounded-3xl shadow-sm border border-gray-100 flex flex-col gap-4">
             <div className="flex justify-between items-center">
                 <div>
@@ -91,25 +107,35 @@ const MedicineDetailPage: React.FC = () => {
                          {isAuthenticated ? `₹${medicine.genericPrice.toFixed(2)}` : 'Login'}
                     </div>
                 </div>
-                <span className="bg-pastel-mint text-pastel-primary px-3 py-1 rounded-lg text-xs font-bold">In Stock</span>
+                <span className={`px-3 py-1 rounded-lg text-xs font-bold ${isExpiringSoon ? 'bg-orange-100 text-orange-600' : 'bg-pastel-mint text-pastel-primary'}`}>
+                    {isExpiringSoon ? 'Restricted' : 'In Stock'}
+                </span>
             </div>
             {isAuthenticated && (
                 <div className="grid grid-cols-2 gap-3">
-                    <button 
-                        onClick={handleAddToCart}
-                        className={`flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold transition-all ${
-                            added ? 'bg-pastel-secondary text-white' : 'bg-pastel-blue text-pastel-primary hover:bg-pastel-mint'
-                        }`}
-                    >
-                        {added ? <CheckCircle2 size={18}/> : <ShoppingCart size={18} />}
-                        {added ? 'Added' : 'Add to Cart'}
-                    </button>
-                    <button 
-                        onClick={handleBuyNow}
-                        className="flex items-center justify-center gap-2 bg-pastel-primary text-white py-3.5 rounded-xl font-bold hover:bg-pastel-secondary transition-all shadow-lg shadow-teal-500/20"
-                    >
-                        <Zap size={18} /> Buy Now
-                    </button>
+                    {isExpiringSoon ? (
+                        <div className="col-span-2 bg-orange-50 border border-orange-100 text-orange-600 p-3 rounded-xl text-xs text-center font-medium flex items-center justify-center gap-2">
+                            <ShieldOff size={16} /> Purchase disabled due to short expiry
+                        </div>
+                    ) : (
+                        <>
+                            <button 
+                                onClick={handleAddToCart}
+                                className={`flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold transition-all ${
+                                    added ? 'bg-pastel-secondary text-white' : 'bg-pastel-blue text-pastel-primary hover:bg-pastel-mint'
+                                }`}
+                            >
+                                {added ? <CheckCircle2 size={18}/> : <ShoppingCart size={18} />}
+                                {added ? 'Added' : 'Add to Cart'}
+                            </button>
+                            <button 
+                                onClick={handleBuyNow}
+                                className="flex items-center justify-center gap-2 bg-pastel-primary text-white py-3.5 rounded-xl font-bold hover:bg-pastel-secondary transition-all shadow-lg shadow-teal-500/20"
+                            >
+                                <Zap size={18} /> Buy Now
+                            </button>
+                        </>
+                    )}
                 </div>
             )}
         </div>
@@ -135,24 +161,34 @@ const MedicineDetailPage: React.FC = () => {
 
                     {isAuthenticated ? (
                         <div className="space-y-4">
-                             <button 
-                                onClick={handleAddToCart}
-                                className={`w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-bold transition-all ${
-                                    added ? 'bg-pastel-secondary text-white' : 'bg-pastel-blue text-pastel-primary hover:bg-pastel-mint'
-                                }`}
-                            >
-                                {added ? <CheckCircle2 size={20}/> : <ShoppingCart size={20} />}
-                                {added ? 'Added to Cart' : 'Add to Cart'}
-                            </button>
-                            <button 
-                                onClick={handleBuyNow}
-                                className="w-full flex items-center justify-center gap-2 bg-pastel-primary text-white py-4 rounded-2xl font-bold hover:bg-pastel-secondary transition-all shadow-xl shadow-teal-500/20 transform hover:-translate-y-0.5"
-                            >
-                                <Zap size={20} /> Buy Now
-                            </button>
-                            <p className="text-xs text-center text-gray-400 mt-2">
-                                Free delivery on orders above ₹200
-                            </p>
+                             {isExpiringSoon ? (
+                                <div className="bg-orange-50 border border-orange-100 rounded-2xl p-4 text-center">
+                                    <AlertTriangle className="mx-auto text-orange-500 mb-2" size={24} />
+                                    <p className="text-orange-700 font-bold text-sm">Unavailable for Purchase</p>
+                                    <p className="text-orange-600 text-xs mt-1">This batch is expiring soon (within 30 days) and has been restricted for safety.</p>
+                                </div>
+                             ) : (
+                                <>
+                                    <button 
+                                        onClick={handleAddToCart}
+                                        className={`w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-bold transition-all ${
+                                            added ? 'bg-pastel-secondary text-white' : 'bg-pastel-blue text-pastel-primary hover:bg-pastel-mint'
+                                        }`}
+                                    >
+                                        {added ? <CheckCircle2 size={20}/> : <ShoppingCart size={20} />}
+                                        {added ? 'Added to Cart' : 'Add to Cart'}
+                                    </button>
+                                    <button 
+                                        onClick={handleBuyNow}
+                                        className="w-full flex items-center justify-center gap-2 bg-pastel-primary text-white py-4 rounded-2xl font-bold hover:bg-pastel-secondary transition-all shadow-xl shadow-teal-500/20 transform hover:-translate-y-0.5"
+                                    >
+                                        <Zap size={20} /> Buy Now
+                                    </button>
+                                    <p className="text-xs text-center text-gray-400 mt-2">
+                                        Free delivery on orders above ₹200
+                                    </p>
+                                </>
+                             )}
                         </div>
                     ) : (
                         <div className="bg-pastel-blue/30 p-6 rounded-2xl text-center border border-pastel-blue/50">
@@ -190,12 +226,18 @@ const MedicineDetailPage: React.FC = () => {
                 <div className="text-xs text-gray-400 font-bold uppercase tracking-wider">Total</div>
                 <div className="text-2xl font-bold text-pastel-primary">₹{medicine.genericPrice}</div>
             </div>
-            <button 
-                onClick={handleBuyNow}
-                className="flex-1 bg-pastel-primary text-white py-3.5 rounded-xl font-bold shadow-lg shadow-teal-500/20 flex items-center justify-center gap-2"
-            >
-                <Zap size={18} /> Buy Now
-            </button>
+            {isExpiringSoon ? (
+                <button disabled className="flex-1 bg-gray-300 text-white py-3.5 rounded-xl font-bold cursor-not-allowed flex items-center justify-center gap-2">
+                    <ShieldOff size={18} /> Restricted
+                </button>
+            ) : (
+                <button 
+                    onClick={handleBuyNow}
+                    className="flex-1 bg-pastel-primary text-white py-3.5 rounded-xl font-bold shadow-lg shadow-teal-500/20 flex items-center justify-center gap-2"
+                >
+                    <Zap size={18} /> Buy Now
+                </button>
+            )}
         </div>
       )}
     </div>

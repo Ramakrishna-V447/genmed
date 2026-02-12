@@ -10,15 +10,22 @@ const HomePage: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   
   const categories = ['All', ...Object.values(MedicineCategory)];
+  const today = new Date();
 
   const filteredMedicines = MEDICINES.filter(med => {
+    // Search Logic
     const matchesSearch = med.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           med.brandExample.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           med.commonUse.some(u => u.toLowerCase().includes(searchTerm.toLowerCase()));
     
+    // Category Logic
     const matchesCategory = selectedCategory === 'All' || med.category === selectedCategory;
 
-    return matchesSearch && matchesCategory;
+    // Auto-Hide Expired Logic
+    const expiryDate = new Date(med.expiryDate);
+    const isExpired = expiryDate < today;
+
+    return matchesSearch && matchesCategory && !isExpired;
   });
 
   return (

@@ -2,46 +2,115 @@
 import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, Package, ShoppingCart, Settings, LogOut, 
-  Plus, Edit2, Trash2, Save, X, Activity, DollarSign, Store, AlertTriangle, FileText,
-  Moon, Sun, ShieldCheck, Upload, Beaker, Pill
+  Plus, Edit2, Trash2, Save, X, Activity, DollarSign, AlertTriangle, FileText,
+  Moon, Sun, ShieldCheck, TrendingUp, Users, Clock, BarChart3, ChevronUp, ArrowRight, Calendar,
+  Bell, UserPlus, LogIn
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { db } from '../../services/db';
-import { Medicine, Order, MedicineCategory, ActivityLog, MarketRate } from '../../types';
+import { Medicine, Order, MedicineCategory, ActivityLog, AdminNotification } from '../../types';
 import { useNavigate } from 'react-router-dom';
+
+// --- Components ---
 
 interface StatCardProps {
   title: string;
   value: string | number;
+  subValue?: string;
   icon: React.ElementType;
   color: string;
+  trend?: 'up' | 'down' | 'neutral';
 }
 
-const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, color }) => (
-  <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm flex items-center gap-4 transition-colors">
-    <div className={`p-4 rounded-xl ${color} text-white`}>
-      <Icon size={24} />
-    </div>
+const StatCard: React.FC<StatCardProps> = ({ title, value, subValue, icon: Icon, color, trend }) => (
+  <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm flex items-start justify-between transition-all hover:shadow-md">
     <div>
-      <h3 className="text-gray-500 dark:text-gray-400 text-sm font-medium">{title}</h3>
-      <p className="text-2xl font-bold text-gray-800 dark:text-white">{value}</p>
+      <p className="text-gray-500 dark:text-gray-400 text-sm font-medium mb-1">{title}</p>
+      <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-1">{value}</h3>
+      {subValue && (
+        <div className="flex items-center gap-1 text-xs">
+           <span className={`${trend === 'up' ? 'text-green-500' : trend === 'down' ? 'text-red-500' : 'text-gray-400'} flex items-center font-bold`}>
+             {trend === 'up' && <ChevronUp size={12} />}
+             {subValue}
+           </span>
+           <span className="text-gray-400">vs last month</span>
+        </div>
+      )}
+    </div>
+    <div className={`p-3 rounded-xl ${color} text-white shadow-lg shadow-opacity-20`}>
+      <Icon size={20} />
     </div>
   </div>
 );
 
-const ActivityLogItem: React.FC<{ log: ActivityLog }> = ({ log }) => (
-  <div className="flex items-start gap-3 py-3 border-b border-gray-50 dark:border-slate-700 last:border-0">
-    <div className="bg-gray-100 dark:bg-slate-700 p-2 rounded-full mt-1 transition-colors">
-      <Activity size={14} className="text-gray-500 dark:text-gray-300" />
+const NotificationItem: React.FC<{ notif: AdminNotification }> = ({ notif }) => (
+    <div className="flex items-start gap-3 py-3 border-b border-gray-50 dark:border-slate-700 last:border-0 hover:bg-gray-50 dark:hover:bg-slate-700/50 p-2 rounded-lg transition-colors">
+        <div className={`p-2 rounded-full mt-1 ${notif.type === 'registration' ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'}`}>
+            {notif.type === 'registration' ? <UserPlus size={14} /> : <LogIn size={14} />}
+        </div>
+        <div>
+            <p className="text-sm font-bold text-gray-800 dark:text-gray-200">{notif.message}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{notif.user_email} • IP: {notif.ip_address}</p>
+            <span className="text-[10px] text-gray-400 dark:text-gray-500 mt-1 block">{new Date(notif.created_at).toLocaleString()}</span>
+        </div>
     </div>
-    <div>
-      <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{log.action}</p>
-      <p className="text-xs text-gray-500 dark:text-gray-400">{log.details}</p>
-      <span className="text-[10px] text-gray-400 dark:text-gray-500">{new Date(log.timestamp).toLocaleString()}</span>
-    </div>
-  </div>
 );
+
+// --- Custom Bar Chart Component ---
+const RevenueChart: React.FC<{ orders: Order[] }> = ({ orders }) => {
+  // Calculate last 7 days revenue
+  const last7Days = [...Array(7)].map((_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    return d.toISOString().split('T')[0];
+  }).reverse();
+
+  const data = last7Days.map(date => {
+    const dayTotal = orders
+      .filter(o => new Date(o.createdAt).toISOString().split('T')[0] === date)
+      .reduce((acc, curr) => acc + curr.totalAmount, 0);
+    return { date, value: dayTotal };
+  });
+
+  const maxVal = Math.max(...data.map(d => d.value), 100); // Avoid div by zero
+
+  return (
+    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm h-full">
+      <div className="flex justify-between items-center mb-6">
+        <h3 className="font-bold text-gray-800 dark:text-white flex items-center gap-2">
+          <BarChart3 size={18} className="text-pastel-primary"/> Revenue Analytics
+        </h3>
+        <select className="bg-gray-50 dark:bg-slate-700 border-none text-xs rounded-lg px-2 py-1 outline-none text-gray-500 dark:text-gray-300">
+          <option>Last 7 Days</option>
+        </select>
+      </div>
+      
+      <div className="flex items-end justify-between h-48 gap-2">
+        {data.map((item, idx) => {
+           const height = (item.value / maxVal) * 100;
+           const dayName = new Date(item.date).toLocaleDateString('en-US', { weekday: 'short' });
+           return (
+             <div key={idx} className="flex flex-col items-center gap-2 flex-1 group">
+                <div className="relative w-full flex justify-center items-end h-full bg-gray-50 dark:bg-slate-700/50 rounded-t-lg overflow-hidden">
+                    <div 
+                      className="w-full bg-pastel-primary/80 group-hover:bg-pastel-primary transition-all duration-500 rounded-t-md relative"
+                      style={{ height: `${height}%` }}
+                    >
+                      {/* Tooltip */}
+                      <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+                        ₹{item.value}
+                      </div>
+                    </div>
+                </div>
+                <span className="text-[10px] text-gray-400 font-medium">{dayName}</span>
+             </div>
+           )
+        })}
+      </div>
+    </div>
+  );
+}
 
 const AdminDashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -52,43 +121,100 @@ const AdminDashboard: React.FC = () => {
   // Data State
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
-  const [logs, setLogs] = useState<ActivityLog[]>([]);
+  const [notifications, setNotifications] = useState<AdminNotification[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Modal State
   const [showModal, setShowModal] = useState(false);
   const [editingMed, setEditingMed] = useState<any>(null);
 
-  // Strict Auth Check for Separation
+  // Computed Stats
+  const [stats, setStats] = useState({
+      todayOrders: 0,
+      monthOrders: 0,
+      totalRevenue: 0,
+      pendingDeliveries: 0,
+      lowStockCount: 0,
+      expiringCount: 0,
+      activeUsers: 0,
+      topMedicines: [] as {name: string, count: number}[]
+  });
+
   useEffect(() => {
     if (!user) {
         navigate('/admin/login');
         return;
     } 
-    
-    // Strict Single Admin Enforcment
     if (user.role !== 'admin' || user.email !== 'admin@medigen.com') {
-        navigate('/'); // Redirect normal users or imposters back to main site
+        navigate('/'); 
     }
   }, [user, navigate]);
 
   const fetchData = async () => {
-    setLoading(true);
-    const [medsData, ordersData, logsData] = await Promise.all([
+    // setLoading(true); // Don't block UI on refresh
+    const [medsData, ordersData, notifsData] = await Promise.all([
       db.getMedicines(),
       db.getAllOrders(),
-      db.getLogs()
+      db.getAdminNotifications()
     ]);
+    
     setMedicines(medsData);
     setOrders(ordersData);
-    setLogs(logsData);
+    setNotifications(notifsData);
+
+    // Calculate Analytics
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    const currentMonth = now.getMonth();
+    const nextMonth = new Date();
+    nextMonth.setDate(nextMonth.getDate() + 30);
+
+    const todayOrders = ordersData.filter(o => new Date(o.createdAt).toISOString().split('T')[0] === todayStr).length;
+    const monthOrders = ordersData.filter(o => new Date(o.createdAt).getMonth() === currentMonth).length;
+    const pending = ordersData.filter(o => o.status !== 'delivered').length;
+    const revenue = ordersData.reduce((acc, o) => acc + o.totalAmount, 0);
+    const lowStock = medsData.filter(m => m.stock < 20).length;
+    
+    // Check expiry
+    const expiring = medsData.filter(m => {
+        const exp = new Date(m.expiryDate);
+        return exp > now && exp < nextMonth;
+    }).length;
+
+    const users = new Set(ordersData.map(o => o.customerEmail)).size;
+
+    // Top Medicines Logic
+    const salesMap: Record<string, number> = {};
+    ordersData.forEach(o => {
+        o.items.forEach(i => {
+            salesMap[i.name] = (salesMap[i.name] || 0) + i.quantity;
+        });
+    });
+    const topMeds = Object.entries(salesMap)
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 4);
+
+    setStats({
+        todayOrders,
+        monthOrders,
+        totalRevenue: revenue,
+        pendingDeliveries: pending,
+        lowStockCount: lowStock,
+        expiringCount: expiring,
+        activeUsers: users,
+        topMedicines: topMeds
+    });
+
     setLoading(false);
   };
 
   useEffect(() => {
-    // Only fetch if admin
     if (user && user.role === 'admin' && user.email === 'admin@medigen.com') {
         fetchData();
+        // Poll for real-time notifications
+        const interval = setInterval(fetchData, 5000); 
+        return () => clearInterval(interval);
     }
   }, [user]);
 
@@ -115,6 +241,7 @@ const AdminDashboard: React.FC = () => {
       name: editingMed.name || 'New Medicine',
       brandExample: editingMed.brandExample || '',
       saltComposition: editingMed.saltComposition || '',
+      batchNumber: editingMed.batchNumber || `BATCH-${Date.now().toString().slice(-4)}`,
       category: editingMed.category || MedicineCategory.PAIN,
       commonUse: Array.isArray(editingMed.commonUse) ? editingMed.commonUse : splitStr(editingMed.commonUse),
       description: editingMed.description || '',
@@ -159,6 +286,7 @@ const AdminDashboard: React.FC = () => {
             name: '',
             brandExample: '',
             saltComposition: '',
+            batchNumber: '',
             category: MedicineCategory.FEVER,
             marketRates: [],
             stock: 100,
@@ -176,6 +304,18 @@ const AdminDashboard: React.FC = () => {
   const handleUpdateOrderStatus = async (orderId: string, status: Order['status']) => {
     await db.updateOrderStatus(orderId, status);
     fetchData();
+  };
+
+  // Helper for expiry check
+  const getExpiryStatus = (dateStr: string) => {
+    const today = new Date();
+    const expiry = new Date(dateStr);
+    const diffTime = expiry.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) return { label: 'Expired', color: 'text-red-600 bg-red-100', expired: true };
+    if (diffDays < 30) return { label: 'Expiring Soon', color: 'text-orange-600 bg-orange-100', expired: false };
+    return { label: 'Valid', color: 'text-green-600 bg-green-100', expired: false };
   };
 
   if (loading) return (
@@ -252,54 +392,165 @@ const AdminDashboard: React.FC = () => {
         {/* Tab Content */}
         {activeTab === 'overview' && (
            <div className="animate-fade-in space-y-6">
-              <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Dashboard Overview</h1>
+              <div className="flex justify-between items-end">
+                  <div>
+                    <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Dashboard Overview</h1>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm">Welcome back, here's what's happening today.</p>
+                  </div>
+                  <div className="text-right hidden sm:block">
+                     <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">Current Time</p>
+                     <p className="text-xl font-mono font-bold text-gray-700 dark:text-gray-200">{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                  </div>
+              </div>
               
+              {/* Key Metrics Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                 <StatCard title="Total Revenue" value={`₹${orders.reduce((acc, o) => acc + o.totalAmount, 0).toFixed(0)}`} icon={DollarSign} color="bg-green-500" />
-                 <StatCard title="Total Orders" value={orders.length} icon={ShoppingCart} color="bg-blue-500" />
-                 <StatCard title="Medicines" value={medicines.length} icon={Package} color="bg-purple-500" />
-                 <StatCard title="Low Stock Alerts" value={medicines.filter(m => m.stock < 20).length} icon={Activity} color="bg-orange-500" />
+                 <StatCard 
+                    title="Total Revenue" 
+                    value={`₹${stats.totalRevenue.toLocaleString()}`} 
+                    subValue="12%"
+                    trend="up"
+                    icon={DollarSign} 
+                    color="bg-green-500" 
+                 />
+                 <StatCard 
+                    title="Orders Today" 
+                    value={stats.todayOrders} 
+                    subValue={`${stats.monthOrders} this month`}
+                    trend={stats.todayOrders > 0 ? 'up' : 'neutral'}
+                    icon={ShoppingCart} 
+                    color="bg-blue-500" 
+                 />
+                 <StatCard 
+                    title="Pending Deliveries" 
+                    value={stats.pendingDeliveries}
+                    subValue="Action needed"
+                    trend="neutral"
+                    icon={Clock} 
+                    color="bg-orange-500" 
+                 />
+                 <StatCard 
+                    title="Active Users" 
+                    value={stats.activeUsers} 
+                    subValue="Total Customers"
+                    trend="up"
+                    icon={Users} 
+                    color="bg-purple-500" 
+                 />
               </div>
 
+              {/* Charts & Lists Row */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-auto">
+                 {/* Revenue Chart */}
+                 <div className="lg:col-span-2">
+                    <RevenueChart orders={orders} />
+                 </div>
+
+                 {/* Real-time Notifications */}
+                 <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm p-6 h-full flex flex-col">
+                    <h3 className="font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
+                        <Bell size={18} className="text-pastel-primary" /> Real-time Alerts
+                        <span className="animate-pulse w-2 h-2 bg-red-500 rounded-full"></span>
+                    </h3>
+                    <div className="flex-1 overflow-y-auto space-y-1 pr-2 custom-scrollbar max-h-[250px]">
+                        {notifications.length > 0 ? notifications.map((notif, idx) => (
+                            <NotificationItem key={idx} notif={notif} />
+                        )) : (
+                            <p className="text-center text-gray-400 py-4 text-sm">No new alerts.</p>
+                        )}
+                    </div>
+                 </div>
+              </div>
+
+              {/* Bottom Row: Low Stock & Expiry Alerts */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                 {/* Recent Orders */}
-                 <div className="lg:col-span-2 bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm p-6 transition-colors">
-                    <h3 className="font-bold text-gray-800 dark:text-white mb-4">Recent Orders</h3>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm text-left">
-                         <thead className="bg-gray-50 dark:bg-slate-700 text-gray-500 dark:text-gray-300">
-                            <tr>
-                               <th className="p-3 rounded-l-lg">ID</th>
-                               <th className="p-3">Customer</th>
-                               <th className="p-3">Amount</th>
-                               <th className="p-3 rounded-r-lg">Status</th>
-                            </tr>
-                         </thead>
-                         <tbody className="dark:text-gray-300">
-                            {orders.slice(0, 5).map(order => (
-                               <tr key={order.id} className="border-b border-gray-50 dark:border-slate-700 last:border-0 hover:bg-gray-50/50 dark:hover:bg-slate-700/50">
-                                  <td className="p-3 font-medium text-gray-700 dark:text-white">#{order.id}</td>
-                                  <td className="p-3">{order.customerEmail}</td>
-                                  <td className="p-3 font-bold">₹{order.totalAmount}</td>
-                                  <td className="p-3">
-                                     <span className={`px-2 py-1 rounded-full text-xs font-bold uppercase ${order.status === 'delivered' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'}`}>
-                                        {order.status}
-                                     </span>
-                                  </td>
-                               </tr>
-                            ))}
-                         </tbody>
-                      </table>
+                 
+                 {/* Low Stock Alerts */}
+                 <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm p-6">
+                     <div className="flex justify-between items-center mb-4">
+                        <h3 className="font-bold text-gray-800 dark:text-white flex items-center gap-2">
+                            <AlertTriangle size={18} className="text-red-500" /> Low Stock
+                        </h3>
+                        <span className="bg-red-100 text-red-600 text-xs font-bold px-2 py-0.5 rounded-full">{stats.lowStockCount} items</span>
+                     </div>
+                     <div className="space-y-2 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
+                        {medicines.filter(m => m.stock < 20).slice(0, 5).map(m => (
+                            <div key={m.id} className="flex justify-between items-center p-3 border-b border-gray-50 dark:border-slate-700 last:border-0 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                                <div>
+                                    <p className="text-sm font-bold text-gray-700 dark:text-gray-200">{m.name}</p>
+                                    <p className="text-xs text-gray-400">ID: {m.id}</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-sm font-bold text-red-500">{m.stock} left</p>
+                                    <button onClick={() => { setEditingMed(m); setShowModal(true); }} className="text-[10px] text-blue-500 hover:underline">Restock</button>
+                                </div>
+                            </div>
+                        ))}
+                        {stats.lowStockCount === 0 && (
+                            <div className="text-center py-8 text-green-500 text-sm font-medium bg-green-50 dark:bg-green-900/10 rounded-xl">
+                                All inventory levels healthy!
+                            </div>
+                        )}
+                     </div>
+                 </div>
+
+                 {/* Expiry Alerts */}
+                 <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm p-6">
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="font-bold text-gray-800 dark:text-white flex items-center gap-2">
+                            <Calendar size={18} className="text-orange-500" /> Expiring Soon
+                        </h3>
+                        <span className="bg-orange-100 text-orange-600 text-xs font-bold px-2 py-0.5 rounded-full">{stats.expiringCount} items</span>
+                    </div>
+                    <div className="space-y-2 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
+                        {medicines
+                            .filter(m => {
+                                const expiry = new Date(m.expiryDate);
+                                const today = new Date();
+                                const nextMonth = new Date();
+                                nextMonth.setDate(nextMonth.getDate() + 30);
+                                return expiry > today && expiry < nextMonth;
+                            })
+                            .slice(0, 5)
+                            .map(m => (
+                                <div key={m.id} className="flex justify-between items-center p-3 border-b border-gray-50 dark:border-slate-700 last:border-0 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                                    <div>
+                                        <p className="text-sm font-bold text-gray-700 dark:text-gray-200">{m.name}</p>
+                                        <p className="text-xs text-gray-400">Batch: {m.batchNumber}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-sm font-bold text-orange-500">{m.expiryDate}</p>
+                                        <button onClick={() => { setEditingMed(m); setShowModal(true); }} className="text-[10px] text-blue-500 hover:underline">Update</button>
+                                    </div>
+                                </div>
+                        ))}
+                        {stats.expiringCount === 0 && (
+                            <div className="text-center py-8 text-green-500 text-sm font-medium bg-green-50 dark:bg-green-900/10 rounded-xl">
+                                No items expiring this month.
+                            </div>
+                        )}
                     </div>
                  </div>
 
-                 {/* Activity Log */}
-                 <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm p-6 transition-colors">
-                    <h3 className="font-bold text-gray-800 dark:text-white mb-4">Activity Log</h3>
-                    <div className="space-y-1">
-                       {logs.length > 0 ? logs.slice(0, 6).map(log => (
-                          <ActivityLogItem key={log.id} log={log} />
-                       )) : <p className="text-gray-400 text-sm">No activity recorded.</p>}
+                 {/* Top Selling Medicines */}
+                 <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm p-6 h-full">
+                    <h3 className="font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
+                        <TrendingUp size={18} className="text-pastel-primary" /> Most Sold
+                    </h3>
+                    <div className="space-y-4">
+                        {stats.topMedicines.length > 0 ? stats.topMedicines.map((item, idx) => (
+                            <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-700/50 rounded-xl">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-pastel-blue text-pastel-primary flex items-center justify-center font-bold text-xs">
+                                        #{idx + 1}
+                                    </div>
+                                    <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{item.name}</span>
+                                </div>
+                                <span className="text-sm font-bold text-gray-900 dark:text-white">{item.count} sold</span>
+                            </div>
+                        )) : (
+                            <div className="text-center text-gray-400 py-4 text-sm">No sales data yet.</div>
+                        )}
                     </div>
                  </div>
               </div>
@@ -325,58 +576,64 @@ const AdminDashboard: React.FC = () => {
                        <thead className="bg-gray-50 dark:bg-slate-700 text-gray-500 dark:text-gray-300 font-medium">
                           <tr>
                              <th className="p-4">Image</th>
-                             <th className="p-4">Name</th>
-                             <th className="p-4">Category</th>
-                             <th className="p-4">Price</th>
+                             <th className="p-4">Details</th>
+                             <th className="p-4">Batch Info</th>
                              <th className="p-4">Stock</th>
-                             <th className="p-4">Expiry</th>
+                             <th className="p-4">Expiry Status</th>
                              <th className="p-4 text-center">Actions</th>
                           </tr>
                        </thead>
                        <tbody className="divide-y divide-gray-100 dark:divide-slate-700 dark:text-gray-300">
-                          {medicines.map(med => (
-                             <tr key={med.id} className="hover:bg-gray-50/50 dark:hover:bg-slate-700/50 transition-colors">
-                                <td className="p-4">
-                                   <div className="w-12 h-12 rounded-lg overflow-hidden border border-gray-200 dark:border-slate-600 bg-white">
-                                      <img 
-                                        src={med.imageUrl} 
-                                        alt={med.name} 
-                                        className="w-full h-full object-cover"
-                                        onError={(e) => { (e.target as HTMLImageElement).src = 'https://via.placeholder.com/150?text=No+Img'; }}
-                                      />
-                                   </div>
-                                </td>
-                                <td className="p-4">
-                                   <div className="font-bold text-gray-800 dark:text-white">{med.name}</div>
-                                   <div className="text-xs text-gray-400">Ex: {med.brandExample}</div>
-                                </td>
-                                <td className="p-4">
-                                   <span className="bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded-lg text-xs font-medium border border-gray-200 dark:border-slate-600">{med.category}</span>
-                                </td>
-                                <td className="p-4">
-                                   <div className="font-bold text-green-600 dark:text-green-400">₹{med.genericPrice}</div>
-                                   <div className="text-xs text-gray-400 line-through">₹{med.brandedPrice}</div>
-                                </td>
-                                <td className="p-4">
-                                   <span className={`px-2 py-1 rounded-md text-xs font-bold ${med.stock < 20 ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'}`}>
-                                      {med.stock} Units
-                                   </span>
-                                </td>
-                                <td className="p-4 text-gray-600 dark:text-gray-400">{med.expiryDate}</td>
-                                <td className="p-4 flex justify-center gap-2">
-                                   <button 
-                                     onClick={() => openEditModal(med)}
-                                     className="p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors" title="Edit">
-                                      <Edit2 size={16} />
-                                   </button>
-                                   <button 
-                                     onClick={() => handleDeleteMed(med.id)}
-                                     className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors" title="Delete">
-                                      <Trash2 size={16} />
-                                   </button>
-                                </td>
-                             </tr>
-                          ))}
+                          {medicines.map(med => {
+                             const status = getExpiryStatus(med.expiryDate);
+                             return (
+                                 <tr key={med.id} className="hover:bg-gray-50/50 dark:hover:bg-slate-700/50 transition-colors">
+                                    <td className="p-4">
+                                    <div className="w-12 h-12 rounded-lg overflow-hidden border border-gray-200 dark:border-slate-600 bg-white">
+                                        <img 
+                                            src={med.imageUrl} 
+                                            alt={med.name} 
+                                            className="w-full h-full object-cover"
+                                            onError={(e) => { (e.target as HTMLImageElement).src = 'https://via.placeholder.com/150?text=No+Img'; }}
+                                        />
+                                    </div>
+                                    </td>
+                                    <td className="p-4">
+                                    <div className="font-bold text-gray-800 dark:text-white">{med.name}</div>
+                                    <div className="text-xs text-gray-400">Ex: {med.brandExample}</div>
+                                    <span className="bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded text-[10px] font-medium border border-gray-200 dark:border-slate-600 mt-1 inline-block">{med.category}</span>
+                                    </td>
+                                    <td className="p-4">
+                                        <div className="font-mono text-xs text-gray-600 dark:text-gray-300">{med.batchNumber || 'N/A'}</div>
+                                    </td>
+                                    <td className="p-4">
+                                    <span className={`px-2 py-1 rounded-md text-xs font-bold ${med.stock < 20 ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'}`}>
+                                        {med.stock} Units
+                                    </span>
+                                    </td>
+                                    <td className="p-4">
+                                        <div className="flex flex-col">
+                                            <span className="text-xs text-gray-500 dark:text-gray-400">{med.expiryDate}</span>
+                                            <span className={`text-[10px] font-bold uppercase mt-1 px-2 py-0.5 rounded w-fit ${status.color}`}>
+                                                {status.label}
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td className="p-4 flex justify-center gap-2">
+                                    <button 
+                                        onClick={() => openEditModal(med)}
+                                        className="p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors" title="Edit">
+                                        <Edit2 size={16} />
+                                    </button>
+                                    <button 
+                                        onClick={() => handleDeleteMed(med.id)}
+                                        className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors" title="Delete">
+                                        <Trash2 size={16} />
+                                    </button>
+                                    </td>
+                                </tr>
+                             );
+                          })}
                        </tbody>
                     </table>
                  </div>
@@ -562,7 +819,7 @@ const AdminDashboard: React.FC = () => {
                     <h3 className="text-sm font-bold text-pastel-primary uppercase tracking-wide border-b border-gray-100 dark:border-slate-700 pb-2 mb-4 flex items-center gap-2">
                         <DollarSign size={16} /> Pricing & Inventory
                     </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div className="group">
                             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Generic Price (₹)</label>
                             <input 
@@ -592,23 +849,17 @@ const AdminDashboard: React.FC = () => {
                                 onChange={e => setEditingMed({...editingMed, stock: e.target.value})}
                             />
                         </div>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="group">
-                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Image URL</label>
-                            <div className="flex gap-2">
-                                <input 
-                                    className="w-full p-3 bg-gray-50 dark:bg-slate-700 dark:text-white rounded-xl border-transparent focus:bg-white dark:focus:bg-slate-600 focus:ring-2 focus:ring-pastel-primary outline-none transition-colors"
-                                    value={editingMed?.imageUrl || ''}
-                                    onChange={e => setEditingMed({...editingMed, imageUrl: e.target.value})}
-                                    placeholder="https://..."
-                                />
-                                <div className="w-12 h-12 rounded-lg bg-gray-100 dark:bg-slate-700 overflow-hidden shrink-0 border border-gray-200 dark:border-slate-600">
-                                    {editingMed?.imageUrl && <img src={editingMed.imageUrl} alt="Preview" className="w-full h-full object-cover" />}
-                                </div>
-                            </div>
+                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Batch Number</label>
+                            <input 
+                                type="text"
+                                className="w-full p-3 bg-gray-50 dark:bg-slate-700 dark:text-white rounded-xl border-transparent focus:bg-white dark:focus:bg-slate-600 focus:ring-2 focus:ring-pastel-primary outline-none transition-colors"
+                                value={editingMed?.batchNumber || ''}
+                                onChange={e => setEditingMed({...editingMed, batchNumber: e.target.value})}
+                                placeholder="e.g. BTC-001"
+                            />
                         </div>
-                        <div className="group">
+                         <div className="group">
                             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Expiry Date</label>
                             <input 
                                 type="date"
@@ -620,83 +871,7 @@ const AdminDashboard: React.FC = () => {
                     </div>
                 </div>
 
-                {/* 3. Dosage Details */}
-                <div className="space-y-4">
-                     <h3 className="text-sm font-bold text-pastel-primary uppercase tracking-wide border-b border-gray-100 dark:border-slate-700 pb-2 mb-4 flex items-center gap-2">
-                        <Beaker size={16} /> Dosage & Safety
-                    </h3>
-                    <div className="grid grid-cols-1 gap-4">
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Normal Dosage</label>
-                            <input 
-                                className="w-full p-3 bg-gray-50 dark:bg-slate-700 dark:text-white rounded-xl border-transparent focus:bg-white dark:focus:bg-slate-600 focus:ring-2 focus:ring-pastel-primary outline-none transition-colors"
-                                value={editingMed?.dosage?.normal || ''}
-                                onChange={e => setEditingMed({...editingMed, dosage: {...editingMed.dosage, normal: e.target.value}})}
-                                placeholder="e.g. 1 tablet every 8 hours"
-                            />
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Max Safe Dose</label>
-                                <input 
-                                    className="w-full p-3 bg-gray-50 dark:bg-slate-700 dark:text-white rounded-xl border-transparent focus:bg-white dark:focus:bg-slate-600 focus:ring-2 focus:ring-pastel-primary outline-none transition-colors"
-                                    value={editingMed?.dosage?.maxSafe || ''}
-                                    onChange={e => setEditingMed({...editingMed, dosage: {...editingMed.dosage, maxSafe: e.target.value}})}
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Overdose Warning</label>
-                                <input 
-                                    className="w-full p-3 bg-gray-50 dark:bg-slate-700 dark:text-white rounded-xl border-transparent focus:bg-white dark:focus:bg-slate-600 focus:ring-2 focus:ring-pastel-primary outline-none transition-colors"
-                                    value={editingMed?.dosage?.overdoseWarning || ''}
-                                    onChange={e => setEditingMed({...editingMed, dosage: {...editingMed.dosage, overdoseWarning: e.target.value}})}
-                                />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* 4. Medical Details */}
-                <div className="space-y-4">
-                    <h3 className="text-sm font-bold text-pastel-primary uppercase tracking-wide border-b border-gray-100 dark:border-slate-700 pb-2 mb-4 flex items-center gap-2">
-                        <FileText size={16} /> Medical Details
-                    </h3>
-                    <div>
-                        <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Mechanism of Action</label>
-                        <textarea 
-                            className="w-full p-3 bg-gray-50 dark:bg-slate-700 dark:text-white rounded-xl border-transparent focus:bg-white dark:focus:bg-slate-600 focus:ring-2 focus:ring-pastel-primary outline-none transition-colors"
-                            value={editingMed?.details?.mechanism || ''}
-                            onChange={e => setEditingMed({...editingMed, details: {...editingMed.details, mechanism: e.target.value}})}
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Storage Instructions</label>
-                        <input 
-                            className="w-full p-3 bg-gray-50 dark:bg-slate-700 dark:text-white rounded-xl border-transparent focus:bg-white dark:focus:bg-slate-600 focus:ring-2 focus:ring-pastel-primary outline-none transition-colors"
-                            value={editingMed?.details?.storage || ''}
-                            onChange={e => setEditingMed({...editingMed, details: {...editingMed.details, storage: e.target.value}})}
-                        />
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Side Effects (Comma Separated)</label>
-                            <input 
-                                className="w-full p-3 bg-gray-50 dark:bg-slate-700 dark:text-white rounded-xl border-transparent focus:bg-white dark:focus:bg-slate-600 focus:ring-2 focus:ring-pastel-primary outline-none transition-colors"
-                                value={editingMed?.details?.sideEffects || ''}
-                                onChange={e => setEditingMed({...editingMed, details: {...editingMed.details, sideEffects: e.target.value}})}
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Contraindications (Comma Separated)</label>
-                            <input 
-                                className="w-full p-3 bg-gray-50 dark:bg-slate-700 dark:text-white rounded-xl border-transparent focus:bg-white dark:focus:bg-slate-600 focus:ring-2 focus:ring-pastel-primary outline-none transition-colors"
-                                value={editingMed?.details?.contraindications || ''}
-                                onChange={e => setEditingMed({...editingMed, details: {...editingMed.details, contraindications: e.target.value}})}
-                            />
-                        </div>
-                    </div>
-                </div>
-
+                {/* 3. Medical Details & Save Button */}
                 <div className="pt-6 flex gap-3 border-t border-gray-100 dark:border-slate-700 sticky bottom-0 bg-white dark:bg-slate-800 z-10">
                    <button 
                      type="button" 
