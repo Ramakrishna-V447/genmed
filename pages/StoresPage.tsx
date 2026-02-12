@@ -1,136 +1,211 @@
+
 import React, { useState } from 'react';
-import { MapPin, Navigation, Search, Phone, Clock, Truck, ChevronRight } from 'lucide-react';
+import { MapPin, Navigation, Search, Phone, Clock, Truck, ChevronRight, Star, ArrowUpRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const STORES = [
-    { id: 1, name: "Jan Aushadhi Kendra - Indiranagar", address: "123, 100 Feet Rd, Indiranagar, Bengaluru", dist: "1.2 km", open: true },
-    { id: 2, name: "Generic Plus Pharmacy", address: "45, CMH Road, Metro Station, Bengaluru", dist: "2.5 km", open: true },
-    { id: 3, name: "Sanjivani Generic Meds", address: "88, Koramangala 4th Block, Bengaluru", dist: "4.8 km", open: false },
-    { id: 4, name: "Pradhan Mantri Janaushadhi", address: "Near Government Hospital, Jayanagar", dist: "5.5 km", open: true },
+    { 
+        id: 1, 
+        name: "Pradhan Mantri Janaushadhi Kendra", 
+        address: "Opp. District Civil Hospital, Collectorate Road, Karimnagar, Telangana 505001", 
+        phone: "+91 878 223 4567",
+        dist: "0.5 km", 
+        open: true,
+        rating: 4.6,
+        reviews: 142,
+        lat: 18.4348,
+        lng: 79.1328,
+        hours: "09:00 AM - 09:00 PM"
+    },
+    { 
+        id: 2, 
+        name: "Sanjivani Generic Meds", 
+        address: "Shop No. 4, Tower Circle, Mukarampura, Karimnagar, Telangana 505001", 
+        phone: "+91 98480 12345",
+        dist: "1.2 km", 
+        open: true,
+        rating: 4.3,
+        reviews: 89,
+        lat: 18.4386,
+        lng: 79.1288,
+        hours: "08:30 AM - 10:00 PM"
+    },
+    { 
+        id: 3, 
+        name: "Generic Plus Pharmacy", 
+        address: "H.No 2-10-12, Mankammathota, Main Road, Karimnagar, Telangana 505001", 
+        phone: "+91 878 224 5678",
+        dist: "2.8 km", 
+        open: false,
+        rating: 4.1,
+        reviews: 56,
+        lat: 18.4450,
+        lng: 79.1250,
+        hours: "10:00 AM - 08:00 PM"
+    },
+    { 
+        id: 4, 
+        name: "DavaIndia Generic Pharmacy", 
+        address: "Beside Ganesh Temple, Bhagatnagar, Karimnagar, Telangana 505001", 
+        phone: "+91 99080 67890",
+        dist: "3.5 km", 
+        open: true,
+        rating: 4.5,
+        reviews: 110,
+        lat: 18.4500,
+        lng: 79.1400,
+        hours: "09:00 AM - 09:30 PM"
+    },
 ];
 
 const StoresPage: React.FC = () => {
-    const [activeStore, setActiveStore] = useState(STORES[0].id);
+    const [activeStoreId, setActiveStoreId] = useState(STORES[0].id);
+    const activeStore = STORES.find(s => s.id === activeStoreId) || STORES[0];
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-20">
-            <div className="bg-white border-b border-gray-100 sticky top-16 z-20">
-                <div className="max-w-7xl mx-auto px-4 py-4">
-                    <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                        <MapPin className="text-pastel-primary" /> Locate Generic Stores
+        <div className="h-[calc(100vh-80px)] bg-gray-50 flex flex-col lg:flex-row overflow-hidden">
+            
+            {/* Sidebar List */}
+            <div className="w-full lg:w-[450px] bg-white border-r border-gray-200 flex flex-col h-full z-10 shadow-xl shadow-gray-200/50">
+                {/* Header */}
+                <div className="p-6 border-b border-gray-100 bg-white z-10">
+                    <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2 mb-1">
+                        <MapPin className="text-pastel-primary fill-pastel-primary/20" /> Store Locator
                     </h1>
+                    <p className="text-sm text-gray-500">Find verified generic medicine stores near you.</p>
+                    
+                    <div className="mt-4 relative group">
+                        <Search className="absolute left-3 top-3 text-gray-400 group-focus-within:text-pastel-primary transition-colors" size={18} />
+                        <input 
+                            type="text" 
+                            placeholder="Search area, city or pincode..."
+                            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-pastel-primary/50 focus:border-pastel-primary transition-all text-sm font-medium" 
+                        />
+                    </div>
+                </div>
+
+                {/* Tracking Widget (Optional) */}
+                <div className="px-6 py-2 bg-gray-50/50">
+                    <Link to="/track-order" className="flex items-center justify-between p-3 bg-white border border-pastel-blue/30 rounded-xl shadow-sm hover:shadow-md transition-all group">
+                         <div className="flex items-center gap-3">
+                             <div className="bg-pastel-mint p-2 rounded-lg text-pastel-primary">
+                                 <Truck size={18} />
+                             </div>
+                             <div>
+                                 <p className="text-xs font-bold text-gray-800 uppercase tracking-wide">Active Order</p>
+                                 <p className="text-[10px] text-gray-500">Track delivery status</p>
+                             </div>
+                         </div>
+                         <div className="bg-gray-50 p-1.5 rounded-full text-gray-400 group-hover:bg-pastel-primary group-hover:text-white transition-colors">
+                             <ChevronRight size={14} />
+                         </div>
+                    </Link>
+                </div>
+
+                {/* Scrollable Store List */}
+                <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3 bg-gray-50/30">
+                    {STORES.map(store => (
+                        <div 
+                            key={store.id}
+                            onClick={() => setActiveStoreId(store.id)}
+                            className={`p-4 rounded-2xl border transition-all cursor-pointer relative overflow-hidden group ${
+                                activeStoreId === store.id 
+                                ? 'bg-white border-pastel-primary shadow-lg shadow-pastel-primary/5 ring-1 ring-pastel-primary' 
+                                : 'bg-white border-gray-100 hover:border-gray-300 hover:shadow-md'
+                            }`}
+                        >
+                            {/* Selection Indicator Bar */}
+                            {activeStoreId === store.id && (
+                                <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-pastel-primary"></div>
+                            )}
+
+                            <div className="flex justify-between items-start mb-2 pl-2">
+                                <h3 className={`font-bold text-sm sm:text-base ${activeStoreId === store.id ? 'text-pastel-primary' : 'text-gray-800'}`}>
+                                    {store.name}
+                                </h3>
+                                <span className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                                    store.open 
+                                    ? 'bg-green-50 text-green-600 border-green-100' 
+                                    : 'bg-red-50 text-red-500 border-red-100'
+                                }`}>
+                                    {store.open ? 'OPEN' : 'CLOSED'}
+                                </span>
+                            </div>
+
+                            <p className="text-xs text-gray-500 mb-3 pl-2 line-clamp-2 leading-relaxed">
+                                {store.address}
+                            </p>
+
+                            <div className="flex items-center gap-4 pl-2 mb-3">
+                                <div className="flex items-center gap-1 bg-yellow-50 px-1.5 py-0.5 rounded text-yellow-700 border border-yellow-100">
+                                    <Star size={10} className="fill-yellow-500 text-yellow-500" />
+                                    <span className="text-xs font-bold">{store.rating}</span>
+                                    <span className="text-[10px] text-yellow-600/70">({store.reviews})</span>
+                                </div>
+                                <div className="flex items-center gap-1 text-xs text-gray-400">
+                                    <MapPin size={12} /> {store.dist} away
+                                </div>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex gap-2 pl-2 mt-2 pt-3 border-t border-gray-50">
+                                <button className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-gray-50 hover:bg-gray-100 text-xs font-bold text-gray-700 transition-colors">
+                                    <Phone size={12} /> Call
+                                </button>
+                                <button className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-pastel-primary hover:bg-pastel-secondary text-xs font-bold text-white transition-colors shadow-sm shadow-teal-500/20">
+                                    <Navigation size={12} /> Directions
+                                </button>
+                            </div>
+                        </div>
+                    ))}
                 </div>
             </div>
 
-            <div className="max-w-7xl mx-auto px-4 py-6 h-[calc(100vh-140px)] flex flex-col lg:flex-row gap-6">
-                
-                {/* Left Column: Tracking & Store List */}
-                <div className="w-full lg:w-1/3 flex flex-col gap-4 h-full">
+            {/* Map Area */}
+            <div className="flex-1 relative bg-gray-100 h-[50vh] lg:h-auto">
+                <iframe
+                    width="100%"
+                    height="100%"
+                    frameBorder="0"
+                    scrolling="no"
+                    marginHeight={0}
+                    marginWidth={0}
+                    title={activeStore.name}
+                    src={`https://maps.google.com/maps?q=${activeStore.lat},${activeStore.lng}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+                    className="w-full h-full grayscale-[20%] hover:grayscale-0 transition-all duration-700"
+                    allowFullScreen
+                ></iframe>
+
+                {/* Floating Store Details on Map */}
+                <div className="absolute top-4 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 bg-white/95 backdrop-blur-md p-5 rounded-2xl shadow-2xl border border-white animate-fade-in z-10">
+                    <div className="flex justify-between items-start mb-2">
+                        <h2 className="font-bold text-gray-900 leading-tight">{activeStore.name}</h2>
+                        <div className="bg-white p-1.5 rounded-lg shadow-sm border border-gray-100">
+                             <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5" />
+                        </div>
+                    </div>
+                    <p className="text-xs text-gray-500 mb-4">{activeStore.address}</p>
                     
-                    {/* Active Order Widget */}
-                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 relative overflow-hidden group shrink-0 animate-fade-in">
-                        <div className="absolute right-0 top-0 w-24 h-24 bg-pastel-blue/20 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
-                        <div className="relative z-10">
-                            <div className="flex justify-between items-start mb-3">
-                                <div className="flex items-center gap-3">
-                                    <div className="bg-pastel-primary text-white p-2.5 rounded-xl shadow-md shadow-teal-500/20">
-                                        <Truck size={20} />
-                                    </div>
-                                    <div>
-                                        <h3 className="font-bold text-gray-800 text-sm">Order #ORD-49201</h3>
-                                        <span className="text-[10px] text-green-700 font-bold bg-green-100 px-2 py-0.5 rounded-full uppercase tracking-wide">Out for Delivery</span>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div className="flex items-center gap-2 text-sm text-gray-500 mb-4 bg-gray-50 p-2 rounded-lg border border-gray-100">
-                                 <Clock size={14} className="text-pastel-secondary"/>
-                                 <span>Arriving in <span className="text-gray-800 font-bold">15 mins</span></span>
-                            </div>
-
-                            <Link to="/track-order" className="flex items-center justify-between w-full bg-pastel-primary text-white p-3 rounded-xl transition-all shadow-md shadow-teal-500/10 hover:bg-pastel-secondary hover:shadow-lg">
-                                <span className="text-sm font-bold">Track Live Status</span> 
-                                <ChevronRight size={16} />
-                            </Link>
+                    <div className="space-y-3 text-xs">
+                        <div className="flex items-center gap-3 text-gray-600">
+                            <Clock size={14} className="text-pastel-primary" />
+                            <span className="font-medium">{activeStore.hours}</span>
+                        </div>
+                        <div className="flex items-center gap-3 text-gray-600">
+                            <Phone size={14} className="text-pastel-primary" />
+                            <span className="font-medium">{activeStore.phone}</span>
                         </div>
                     </div>
 
-                    {/* Store List */}
-                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col flex-1 min-h-0">
-                        <div className="p-4 border-b border-gray-100 shrink-0">
-                             <div className="relative">
-                                <Search className="absolute left-3 top-3 text-gray-400" size={18} />
-                                <input 
-                                    type="text" 
-                                    placeholder="Search location..."
-                                    className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:border-pastel-primary" 
-                                />
-                             </div>
-                        </div>
-                        <div className="overflow-y-auto flex-1 p-2 space-y-2">
-                            {STORES.map(store => (
-                                <button 
-                                    key={store.id}
-                                    onClick={() => setActiveStore(store.id)}
-                                    className={`w-full text-left p-4 rounded-xl transition-all border ${
-                                        activeStore === store.id 
-                                        ? 'bg-pastel-blue/20 border-pastel-primary' 
-                                        : 'bg-white border-transparent hover:bg-gray-50'
-                                    }`}
-                                >
-                                    <h3 className="font-bold text-gray-800">{store.name}</h3>
-                                    <p className="text-sm text-gray-500 mt-1">{store.address}</p>
-                                    <div className="flex items-center gap-4 mt-3 text-xs font-medium">
-                                        <span className="flex items-center gap-1 text-gray-600"><Navigation size={12}/> {store.dist}</span>
-                                        <span className={`${store.open ? 'text-green-600' : 'text-red-500'}`}>
-                                            {store.open ? 'Open Now' : 'Closed'}
-                                        </span>
-                                    </div>
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Map View Area */}
-                <div className="w-full lg:w-2/3 bg-gray-200 rounded-2xl overflow-hidden relative shadow-inner">
-                    {/* Simulated Map Background */}
-                    <div className="absolute inset-0 bg-[url('https://upload.wikimedia.org/wikipedia/commons/e/ec/Map_of_Bangalore.jpg')] bg-cover bg-center opacity-50 grayscale hover:grayscale-0 transition-all duration-700"></div>
-                    
-                    {/* Simulated Pins */}
-                    <div className="absolute inset-0 pointer-events-none">
-                        {STORES.map((store, idx) => (
-                            <div 
-                                key={store.id} 
-                                className={`absolute transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center cursor-pointer pointer-events-auto transition-all duration-300 ${
-                                    activeStore === store.id ? 'scale-110 z-10' : 'scale-90 opacity-80'
-                                }`}
-                                style={{ top: `${30 + (idx * 15)}%`, left: `${40 + (idx * 10)}%` }}
-                                onClick={() => setActiveStore(store.id)}
-                            >
-                                <div className={`p-2 rounded-full shadow-lg ${activeStore === store.id ? 'bg-pastel-primary text-white' : 'bg-white text-gray-600'}`}>
-                                    <MapPin size={24} className="fill-current" />
-                                </div>
-                                {activeStore === store.id && (
-                                    <div className="mt-2 bg-white px-3 py-1 rounded-lg shadow-md text-xs font-bold text-gray-800 whitespace-nowrap">
-                                        {store.name}
-                                    </div>
-                                )}
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* Bottom Info Card for Mobile */}
-                    <div className="absolute bottom-4 left-4 right-4 bg-white p-4 rounded-xl shadow-lg lg:hidden">
-                        <div className="flex justify-between items-start">
-                             <div>
-                                <h3 className="font-bold text-gray-800">{STORES.find(s => s.id === activeStore)?.name}</h3>
-                                <p className="text-xs text-gray-500">{STORES.find(s => s.id === activeStore)?.address}</p>
-                             </div>
-                             <button className="bg-pastel-primary text-white p-2 rounded-full">
-                                <Navigation size={20} />
-                             </button>
-                        </div>
+                    <div className="mt-5 flex gap-3">
+                         <a 
+                           href={`https://www.google.com/maps/dir/?api=1&destination=${activeStore.lat},${activeStore.lng}`}
+                           target="_blank"
+                           rel="noreferrer"
+                           className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 transition-all"
+                         >
+                            <ArrowUpRight size={16} /> Open Maps
+                         </a>
                     </div>
                 </div>
             </div>
