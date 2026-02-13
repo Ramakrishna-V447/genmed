@@ -1,14 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { Medicine } from '../../types';
-import { Check, AlertTriangle, Info, Pill, Wallet, Lock, Store, Scale } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
-import AuthModal from '../AuthModal';
+import { Check, AlertTriangle, Info, Pill, Wallet, Store, Scale } from 'lucide-react';
 
 // --- Price Comparison Block ---
 export const PriceComparisonBlock: React.FC<{ medicine: Medicine }> = ({ medicine }) => {
-  const { isAuthenticated } = useAuth();
-  const [showAuthModal, setShowAuthModal] = useState(false);
   const [animate, setAnimate] = useState(false);
 
   useEffect(() => {
@@ -28,7 +24,7 @@ export const PriceComparisonBlock: React.FC<{ medicine: Medicine }> = ({ medicin
           <h2 className="text-xl font-bold text-gray-800">Price Comparison</h2>
         </div>
 
-        <div className={`relative ${!isAuthenticated ? 'filter blur-sm select-none' : ''} transition-all duration-500`}>
+        <div className="relative transition-all duration-500">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
             {/* Branded */}
             <div className="border border-red-100 bg-red-50/50 rounded-xl p-5 flex flex-col items-center justify-center text-center">
@@ -169,27 +165,7 @@ export const PriceComparisonBlock: React.FC<{ medicine: Medicine }> = ({ medicin
              </div>
           </div>
         </div>
-
-        {/* Auth Overlay */}
-        {!isAuthenticated && (
-          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/60 backdrop-blur-[2px]">
-            <div className="bg-white p-6 rounded-2xl shadow-xl border border-gray-100 text-center max-w-xs animate-slide-up">
-              <div className="bg-pastel-blue w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
-                <Lock className="text-pastel-primary" size={24} />
-              </div>
-              <h3 className="font-bold text-gray-800 text-lg mb-1">Unlock Savings</h3>
-              <p className="text-sm text-gray-500 mb-4">Login to view prices and see how much you can save.</p>
-              <button 
-                onClick={() => setShowAuthModal(true)}
-                className="bg-pastel-primary hover:bg-pastel-secondary text-white font-bold py-2 px-6 rounded-full transition-colors w-full"
-              >
-                Login / Signup
-              </button>
-            </div>
-          </div>
-        )}
       </div>
-      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
     </>
   );
 };

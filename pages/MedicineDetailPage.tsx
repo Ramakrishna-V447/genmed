@@ -1,12 +1,13 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { MEDICINES } from '../constants';
-import { ArrowLeft, Heart, ShoppingCart, Zap, CheckCircle2, AlertTriangle, ShieldOff, Calculator, Percent } from 'lucide-react';
+import { ArrowLeft, Heart, ShoppingCart, Zap, CheckCircle2, AlertTriangle, ShieldOff, Calculator, Percent, Lock } from 'lucide-react';
 import { PriceComparisonBlock, UsageBlock, DosageBlock, DetailsBlock } from '../components/blocks/MedicineDetailBlocks';
 import { useBookmarks } from '../context/BookmarkContext';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import AuthModal from '../components/AuthModal';
 
 const MedicineDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -20,6 +21,12 @@ const MedicineDetailPage: React.FC = () => {
   const [sheetCount, setSheetCount] = useState(1);
   const [tabletCount, setTabletCount] = useState(0);
   const [added, setAdded] = React.useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+
+  // Scroll Sync State & Refs
+  const leftPanelRef = useRef<HTMLDivElement>(null);
+  const rightPanelRef = useRef<HTMLDivElement>(null);
+  const [hoveredPanel, setHoveredPanel] = useState<'left' | 'right' | null>(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -88,8 +95,25 @@ const MedicineDetailPage: React.FC = () => {
       setSheetCount(val < 0 ? 0 : val);
   };
   const handleTabletChange = (val: number) => {
-      // Allow tablets up to strip size - 1 (usually), but keeping it flexible
       setTabletCount(val < 0 ? 0 : val);
+  };
+
+  // --- Scroll Sync Handlers ---
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>, source: 'left' | 'right') => {
+      // Only sync on desktop (lg breakpoint is 1024px)
+      if (window.innerWidth < 1024) return;
+
+      // Only sync if the user is actively hovering/interacting with the source panel
+      // This prevents infinite loop of scroll events triggering each other
+      if (hoveredPanel === source) {
+          const scrollTop = e.currentTarget.scrollTop;
+          
+          if (source === 'left' && rightPanelRef.current) {
+              rightPanelRef.current.scrollTop = scrollTop;
+          } else if (source === 'right' && leftPanelRef.current) {
+              leftPanelRef.current.scrollTop = scrollTop;
+          }
+      }
   };
 
   return (
@@ -143,110 +167,132 @@ const MedicineDetailPage: React.FC = () => {
              </div>
         </div>
 
-        {/* Block 1: Price Comparison (Full Width) */}
-        <div className="flex flex-col lg:flex-row gap-8">
-            <section className="flex-1 animate-slide-up" style={{ animationDelay: '100ms' }}>
-                <PriceComparisonBlock medicine={medicine} />
-            </section>
-            
-            {/* Configure Order / Buy Box */}
-            <div className="w-full lg:w-[28rem] shrink-0">
-                <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 sticky top-40 animate-slide-up" style={{ animationDelay: '150ms' }}>
+        {/* Pricing & Order Section (Unified Lock + Sync Scroll) */}
+        <div className="relative">
+            {/* 
+                Container Logic:
+                - Mobile: Standard flex-col, auto height.
+                - Desktop (lg): Fixed height (650px), grid layout, hidden scrollbars for synchronized feel.
+            */}
+            <div className={`grid grid-cols-1 lg:grid-cols-3 gap-6 lg:h-[650px] ${!isAuthenticated ? 'filter blur-sm pointer-events-none select-none opacity-60' : ''} transition-all duration-500`}>
+                
+                {/* Block 1: Price Comparison (Left Panel) */}
+                <div 
+                    ref={leftPanelRef}
+                    onMouseEnter={() => setHoveredPanel('left')}
+                    onScroll={(e) => handleScroll(e, 'left')}
+                    className="lg:col-span-2 h-full lg:overflow-y-auto custom-scrollbar lg:pr-2 animate-slide-up" 
+                    style={{ animationDelay: '100ms' }}
+                >
+                    <PriceComparisonBlock medicine={medicine} />
                     
-                    <div className="flex items-center gap-2 mb-6">
-                         <div className="bg-pastel-blue p-2 rounded-lg text-pastel-primary"><Calculator size={20}/></div>
-                         <h3 className="text-lg font-bold text-gray-800">Configure Order</h3>
-                    </div>
+                    {/* Spacer for desktop scroll alignment if needed */}
+                    <div className="hidden lg:block h-8"></div>
+                </div>
+                
+                {/* Block 2: Configure Order / Buy Box (Right Panel) */}
+                <div 
+                    ref={rightPanelRef}
+                    onMouseEnter={() => setHoveredPanel('right')}
+                    onScroll={(e) => handleScroll(e, 'right')}
+                    className="w-full h-full lg:overflow-y-auto custom-scrollbar lg:pl-1 animate-slide-up" 
+                    style={{ animationDelay: '150ms' }}
+                >
+                    <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 relative overflow-hidden min-h-full">
+                        
+                        <div className="flex items-center gap-2 mb-6">
+                                <div className="bg-pastel-blue p-2 rounded-lg text-pastel-primary"><Calculator size={20}/></div>
+                                <h3 className="text-lg font-bold text-gray-800">Configure Order</h3>
+                        </div>
 
-                    <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100 mb-6">
-                         <div className="flex justify-between items-center mb-2">
-                             <span className="text-xs font-bold text-gray-500 uppercase">Unit Price</span>
-                             <span className="text-sm font-medium text-gray-700">1 Sheet = {medicine.stripSize} Tabs</span>
-                         </div>
-                         <div className="flex justify-between items-end">
-                              <div>
-                                  <div className="text-2xl font-bold text-gray-800">₹{pricePerStrip.toFixed(2)}</div>
-                                  <div className="text-xs text-gray-400">Per Sheet</div>
-                              </div>
-                              <div className="text-right">
-                                  <div className="text-lg font-bold text-gray-600">₹{pricePerTablet.toFixed(2)}</div>
-                                  <div className="text-xs text-gray-400">Per Tablet</div>
-                              </div>
-                         </div>
-                    </div>
+                        <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100 mb-6">
+                                <div className="flex justify-between items-center mb-2">
+                                    <span className="text-xs font-bold text-gray-500 uppercase">Unit Price</span>
+                                    <span className="text-sm font-medium text-gray-700">1 Sheet = {medicine.stripSize} Tabs</span>
+                                </div>
+                                <div className="flex justify-between items-end">
+                                    <div>
+                                        <div className="text-2xl font-bold text-gray-800">₹{pricePerStrip.toFixed(2)}</div>
+                                        <div className="text-xs text-gray-400">Per Sheet</div>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="text-lg font-bold text-gray-600">₹{pricePerTablet.toFixed(2)}</div>
+                                        <div className="text-xs text-gray-400">Per Tablet</div>
+                                    </div>
+                                </div>
+                        </div>
 
-                    {/* Inputs */}
-                    <div className="grid grid-cols-2 gap-4 mb-6">
-                        <div>
-                             <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5 ml-1">Sheets</label>
-                             <div className="flex items-center bg-gray-50 rounded-xl border border-gray-200">
-                                 <button onClick={() => handleSheetChange(sheetCount - 1)} className="p-3 text-gray-400 hover:text-pastel-primary transition-colors hover:bg-white rounded-l-xl border-r border-gray-100">-</button>
-                                 <input 
-                                    type="number" 
-                                    min="0"
-                                    value={sheetCount}
-                                    onChange={(e) => handleSheetChange(parseInt(e.target.value) || 0)}
-                                    className="w-full bg-transparent text-center font-bold text-gray-800 outline-none"
-                                 />
-                                 <button onClick={() => handleSheetChange(sheetCount + 1)} className="p-3 text-gray-400 hover:text-pastel-primary transition-colors hover:bg-white rounded-r-xl border-l border-gray-100">+</button>
-                             </div>
-                        </div>
-                        <div>
-                             <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5 ml-1">Tablets</label>
-                             <div className="flex items-center bg-gray-50 rounded-xl border border-gray-200">
-                                 <button onClick={() => handleTabletChange(tabletCount - 1)} className="p-3 text-gray-400 hover:text-pastel-primary transition-colors hover:bg-white rounded-l-xl border-r border-gray-100">-</button>
-                                 <input 
-                                    type="number" 
-                                    min="0"
-                                    value={tabletCount}
-                                    onChange={(e) => handleTabletChange(parseInt(e.target.value) || 0)}
-                                    className="w-full bg-transparent text-center font-bold text-gray-800 outline-none"
-                                 />
-                                 <button onClick={() => handleTabletChange(tabletCount + 1)} className="p-3 text-gray-400 hover:text-pastel-primary transition-colors hover:bg-white rounded-r-xl border-l border-gray-100">+</button>
-                             </div>
-                        </div>
-                    </div>
-
-                    {/* Calculation Summary */}
-                    <div className="space-y-2 mb-6 text-sm">
-                        <div className="flex justify-between text-gray-500">
-                             <span>Total Quantity</span>
-                             <span className="font-medium">{totalTabletsOrdered} Tablets</span>
-                        </div>
-                        <div className="flex justify-between text-gray-500">
-                             <span>Base Price</span>
-                             <span>₹{rawSubtotal.toFixed(2)}</span>
-                        </div>
-                        {discountPercent > 0 && (
-                            <div className="flex justify-between text-green-600 font-medium">
-                                <span className="flex items-center gap-1"><Percent size={12}/> Bulk Discount ({discountPercent}%)</span>
-                                <span>- ₹{discountAmount.toFixed(2)}</span>
+                        {/* Inputs */}
+                        <div className="grid grid-cols-2 gap-4 mb-6">
+                            <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5 ml-1">Sheets</label>
+                                    <div className="flex items-center bg-gray-50 rounded-xl border border-gray-200">
+                                        <button onClick={() => handleSheetChange(sheetCount - 1)} className="p-3 text-gray-400 hover:text-pastel-primary transition-colors hover:bg-white rounded-l-xl border-r border-gray-100">-</button>
+                                        <input 
+                                        type="number" 
+                                        min="0"
+                                        value={sheetCount}
+                                        onChange={(e) => handleSheetChange(parseInt(e.target.value) || 0)}
+                                        className="w-full bg-transparent text-center font-bold text-gray-800 outline-none"
+                                        />
+                                        <button onClick={() => handleSheetChange(sheetCount + 1)} className="p-3 text-gray-400 hover:text-pastel-primary transition-colors hover:bg-white rounded-r-xl border-l border-gray-100">+</button>
+                                    </div>
                             </div>
-                        )}
-                        <div className="pt-3 border-t border-dashed border-gray-200 flex justify-between items-center">
-                             <span className="font-bold text-gray-800">Final Total</span>
-                             <span className="text-2xl font-extrabold text-pastel-primary">₹{finalPrice.toFixed(2)}</span>
+                            <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5 ml-1">Tablets</label>
+                                    <div className="flex items-center bg-gray-50 rounded-xl border border-gray-200">
+                                        <button onClick={() => handleTabletChange(tabletCount - 1)} className="p-3 text-gray-400 hover:text-pastel-primary transition-colors hover:bg-white rounded-l-xl border-r border-gray-100">-</button>
+                                        <input 
+                                        type="number" 
+                                        min="0"
+                                        value={tabletCount}
+                                        onChange={(e) => handleTabletChange(parseInt(e.target.value) || 0)}
+                                        className="w-full bg-transparent text-center font-bold text-gray-800 outline-none"
+                                        />
+                                        <button onClick={() => handleTabletChange(tabletCount + 1)} className="p-3 text-gray-400 hover:text-pastel-primary transition-colors hover:bg-white rounded-r-xl border-l border-gray-100">+</button>
+                                    </div>
+                            </div>
                         </div>
-                    </div>
 
-                    {/* Bulk Offer Badges */}
-                    <div className="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
-                         <div className={`shrink-0 px-3 py-1.5 rounded-lg border text-xs font-bold transition-colors ${discountPercent === 5 ? 'bg-green-100 border-green-200 text-green-700' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
-                             50+ Tabs: 5% Off
-                         </div>
-                         <div className={`shrink-0 px-3 py-1.5 rounded-lg border text-xs font-bold transition-colors ${discountPercent === 10 ? 'bg-green-100 border-green-200 text-green-700' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
-                             100+ Tabs: 10% Off
-                         </div>
-                    </div>
+                        {/* Calculation Summary */}
+                        <div className="space-y-2 mb-6 text-sm">
+                            <div className="flex justify-between text-gray-500">
+                                    <span>Total Quantity</span>
+                                    <span className="font-medium">{totalTabletsOrdered} Tablets</span>
+                            </div>
+                            <div className="flex justify-between text-gray-500">
+                                    <span>Base Price</span>
+                                    <span>₹{rawSubtotal.toFixed(2)}</span>
+                            </div>
+                            {discountPercent > 0 && (
+                                <div className="flex justify-between text-green-600 font-medium">
+                                    <span className="flex items-center gap-1"><Percent size={12}/> Bulk Discount ({discountPercent}%)</span>
+                                    <span>- ₹{discountAmount.toFixed(2)}</span>
+                                </div>
+                            )}
+                            <div className="pt-3 border-t border-dashed border-gray-200 flex justify-between items-center">
+                                    <span className="font-bold text-gray-800">Final Total</span>
+                                    <span className="text-2xl font-extrabold text-pastel-primary">₹{finalPrice.toFixed(2)}</span>
+                            </div>
+                        </div>
 
-                    {isAuthenticated ? (
+                        {/* Bulk Offer Badges */}
+                        <div className="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
+                                <div className={`shrink-0 px-3 py-1.5 rounded-lg border text-xs font-bold transition-colors ${discountPercent === 5 ? 'bg-green-100 border-green-200 text-green-700' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
+                                    50+ Tabs: 5% Off
+                                </div>
+                                <div className={`shrink-0 px-3 py-1.5 rounded-lg border text-xs font-bold transition-colors ${discountPercent === 10 ? 'bg-green-100 border-green-200 text-green-700' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
+                                    100+ Tabs: 10% Off
+                                </div>
+                        </div>
+
                         <div className="space-y-3">
-                             {isExpiringSoon ? (
+                                {isExpiringSoon ? (
                                 <div className="bg-orange-50 border border-orange-100 rounded-xl p-3 text-center text-sm">
                                     <p className="text-orange-700 font-bold flex items-center justify-center gap-2"><ShieldOff size={16}/> Unavailable</p>
                                     <p className="text-orange-600 text-xs mt-1">Short expiry batch restricted.</p>
                                 </div>
-                             ) : (
+                                ) : (
                                 <>
                                     <button 
                                         onClick={handleAddToCart}
@@ -266,16 +312,33 @@ const MedicineDetailPage: React.FC = () => {
                                         <Zap size={18} /> Buy Now
                                     </button>
                                 </>
-                             )}
+                                )}
                         </div>
-                    ) : (
-                        <div className="bg-gray-50 p-4 rounded-xl text-center border border-gray-100">
-                            <p className="text-sm font-bold text-gray-600 mb-1">Login to Order</p>
-                            <p className="text-xs text-gray-400">Unlock these bulk savings instantly.</p>
-                        </div>
-                    )}
+
+                        {/* Extra spacer to ensure scrolling is possible if content is short but container is tall */}
+                        <div className="hidden lg:block h-10"></div>
+                    </div>
                 </div>
             </div>
+
+            {/* Unified Auth Overlay */}
+            {!isAuthenticated && (
+                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/40 backdrop-blur-[2px] rounded-3xl">
+                    <div className="bg-white p-6 rounded-2xl shadow-xl border border-gray-100 text-center max-w-[320px] animate-slide-up">
+                        <div className="bg-pastel-blue w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <Lock className="text-pastel-primary" size={24} />
+                        </div>
+                        <h3 className="font-bold text-gray-800 text-lg mb-1">Login to View Prices & Order</h3>
+                        <p className="text-sm text-gray-500 mb-4">Unlock savings, view generic price comparisons, and place your order.</p>
+                        <button 
+                            onClick={() => setShowAuthModal(true)}
+                            className="bg-pastel-primary hover:bg-pastel-secondary text-white font-bold py-2.5 px-8 rounded-full transition-colors w-full shadow-lg shadow-teal-500/20"
+                        >
+                            Login / Signup
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -319,6 +382,8 @@ const MedicineDetailPage: React.FC = () => {
             )}
         </div>
       )}
+
+      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
     </div>
   );
 };

@@ -1,10 +1,10 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   LayoutDashboard, Package, ShoppingCart, Settings, LogOut, 
   Plus, Edit2, Trash2, Save, X, Activity, DollarSign, AlertTriangle, FileText,
   Moon, Sun, ShieldCheck, TrendingUp, Users, Clock, BarChart3, ChevronUp, ArrowRight, Calendar,
-  Bell, UserPlus, LogIn
+  Bell, UserPlus, LogIn, Upload, Link as LinkIcon, Image as ImageIcon, CheckCircle2
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -127,6 +127,11 @@ const AdminDashboard: React.FC = () => {
   // Modal State
   const [showModal, setShowModal] = useState(false);
   const [editingMed, setEditingMed] = useState<any>(null);
+  
+  // Image Upload State
+  const [imageInputMode, setImageInputMode] = useState<'url' | 'file'>('url');
+  const [imageFileError, setImageFileError] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Computed Stats
   const [stats, setStats] = useState({
@@ -234,6 +239,12 @@ const AdminDashboard: React.FC = () => {
     e.preventDefault();
     if (!editingMed) return;
 
+    // Simple validation for required fields
+    if (!editingMed.imageUrl) {
+        alert("Please provide an image for the medicine (URL or File Upload).");
+        return;
+    }
+
     const splitStr = (str: any) => typeof str === 'string' ? str.split(',').map((s: string) => s.trim()).filter(Boolean) : (str || []);
 
     const medToSave: Medicine = {
@@ -251,7 +262,7 @@ const AdminDashboard: React.FC = () => {
       stock: Number(editingMed.stock) || 0,
       expiryDate: editingMed.expiryDate || '2025-12-31',
       marketRates: editingMed.marketRates || [],
-      imageUrl: editingMed.imageUrl || 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&q=80&w=400',
+      imageUrl: editingMed.imageUrl,
       dosage: {
         normal: editingMed.dosage?.normal || '',
         maxSafe: editingMed.dosage?.maxSafe || '',
@@ -272,6 +283,8 @@ const AdminDashboard: React.FC = () => {
   };
 
   const openEditModal = (med?: Medicine) => {
+    setImageInputMode('url');
+    setImageFileError('');
     if (med) {
         setEditingMed({
             ...med,
@@ -282,6 +295,10 @@ const AdminDashboard: React.FC = () => {
                 contraindications: med.details.contraindications.join(', ')
             }
         });
+        // Auto-detect if existing is Data URI to set mode appropriately (optional, defaulting to URL is fine)
+        if (med.imageUrl.startsWith('data:')) {
+            setImageInputMode('file');
+        }
     } else {
         setEditingMed({
             name: '',
@@ -293,7 +310,7 @@ const AdminDashboard: React.FC = () => {
             marketRates: [],
             stock: 100,
             expiryDate: '',
-            imageUrl: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&q=80&w=400',
+            imageUrl: '', // Start empty
             description: '',
             dosage: { normal: '', maxSafe: '', overdoseWarning: '' },
             details: { mechanism: '', sideEffects: '', contraindications: '', storage: '' },
@@ -306,6 +323,30 @@ const AdminDashboard: React.FC = () => {
   const handleUpdateOrderStatus = async (orderId: string, status: Order['status']) => {
     await db.updateOrderStatus(orderId, status);
     fetchData();
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setImageFileError('');
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+        setImageFileError('File size exceeds 5MB limit.');
+        return;
+    }
+
+    // Validate type
+    if (!['image/jpeg', 'image/png', 'image/webp', 'image/jpg'].includes(file.type)) {
+        setImageFileError('Invalid file type. Only JPG, PNG, and WEBP allowed.');
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+        setEditingMed({ ...editingMed, imageUrl: reader.result as string });
+    };
+    reader.readAsDataURL(file);
   };
 
   // Helper for expiry check
@@ -800,6 +841,94 @@ const AdminDashboard: React.FC = () => {
                                 ))}
                             </select>
                         </div>
+                        
+                        {/* Image Upload Section */}
+                        <div className="md:col-span-2 group">
+                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-2">Medicine Image</label>
+                            
+                            <div className="bg-gray-50 dark:bg-slate-700/50 p-4 rounded-xl border border-gray-100 dark:border-slate-700">
+                                {/* Toggle Tabs */}
+                                <div className="flex bg-gray-200 dark:bg-slate-700 rounded-lg p-1 mb-4 w-fit">
+                                    <button
+                                        type="button"
+                                        onClick={() => setImageInputMode('url')}
+                                        className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-2 ${imageInputMode === 'url' ? 'bg-white dark:bg-slate-600 text-pastel-primary shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}
+                                    >
+                                        <LinkIcon size={14} /> Image URL
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setImageInputMode('file')}
+                                        className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-2 ${imageInputMode === 'file' ? 'bg-white dark:bg-slate-600 text-pastel-primary shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}
+                                    >
+                                        <Upload size={14} /> Upload File
+                                    </button>
+                                </div>
+
+                                {/* URL Input */}
+                                {imageInputMode === 'url' && (
+                                    <div className="relative">
+                                        <input 
+                                            className="w-full p-3 pl-10 bg-white dark:bg-slate-600 dark:text-white rounded-xl border border-gray-200 dark:border-slate-500 focus:ring-2 focus:ring-pastel-primary outline-none transition-colors"
+                                            value={editingMed?.imageUrl && !editingMed.imageUrl.startsWith('data:') ? editingMed.imageUrl : ''}
+                                            onChange={e => setEditingMed({...editingMed, imageUrl: e.target.value})}
+                                            placeholder="https://example.com/medicine-image.jpg"
+                                        />
+                                        <ImageIcon className="absolute left-3 top-3.5 text-gray-400" size={18} />
+                                    </div>
+                                )}
+
+                                {/* File Upload Input */}
+                                {imageInputMode === 'file' && (
+                                    <div>
+                                        <div 
+                                            onClick={() => fileInputRef.current?.click()}
+                                            className="border-2 border-dashed border-gray-300 dark:border-slate-500 rounded-xl p-6 text-center cursor-pointer hover:border-pastel-primary hover:bg-pastel-blue/5 dark:hover:bg-slate-600 transition-all group"
+                                        >
+                                            <div className="bg-gray-100 dark:bg-slate-600 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
+                                                <Upload className="text-gray-500 dark:text-gray-300 group-hover:text-pastel-primary" size={24} />
+                                            </div>
+                                            <p className="text-sm font-bold text-gray-600 dark:text-gray-300">Click to upload image</p>
+                                            <p className="text-xs text-gray-400 mt-1">JPG, PNG, WEBP (Max 5MB)</p>
+                                        </div>
+                                        <input 
+                                            ref={fileInputRef}
+                                            type="file" 
+                                            accept="image/png, image/jpeg, image/jpg, image/webp"
+                                            className="hidden"
+                                            onChange={handleFileUpload}
+                                        />
+                                        {imageFileError && (
+                                            <p className="text-xs text-red-500 mt-2 flex items-center gap-1">
+                                                <AlertTriangle size={12} /> {imageFileError}
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Preview */}
+                                {editingMed?.imageUrl && (
+                                    <div className="mt-4 flex items-start gap-4 p-3 bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-600">
+                                        <div className="w-16 h-16 rounded-lg overflow-hidden border border-gray-200 dark:border-slate-600 shrink-0 bg-gray-50">
+                                            <img src={editingMed.imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                                        </div>
+                                        <div className="flex-1 overflow-hidden">
+                                            <p className="text-xs font-bold text-gray-700 dark:text-gray-300">Image Preview</p>
+                                            <p className="text-[10px] text-gray-400 truncate">{imageInputMode === 'file' && editingMed.imageUrl.startsWith('data:') ? 'Local File Selected' : editingMed.imageUrl}</p>
+                                            <button 
+                                                type="button"
+                                                onClick={() => setEditingMed({...editingMed, imageUrl: ''})}
+                                                className="text-[10px] text-red-500 hover:underline mt-1"
+                                            >
+                                                Remove Image
+                                            </button>
+                                        </div>
+                                        <CheckCircle2 className="text-green-500" size={20} />
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
                         <div className="md:col-span-2 group">
                             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Description</label>
                             <textarea 
