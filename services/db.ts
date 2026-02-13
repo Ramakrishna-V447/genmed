@@ -9,6 +9,7 @@ const DB_KEYS = {
   LOGS: 'medigen_db_logs',
   EMAILS: 'medigen_db_emails',
   USERS: 'medigen_db_users_fallback', // New key for offline users
+  NOTIFICATIONS: 'medigen_db_notifications', // New key for offline notifications
   // Base keys for dynamic user data
   CART_PREFIX: 'medigen_cart_',
   BOOKMARK_PREFIX: 'medigen_bookmarks_'
@@ -165,16 +166,33 @@ export const db = {
   },
 
   // --- ADMIN NOTIFICATIONS ---
+  
+  logNotification: async (type: 'registration' | 'login', message: string, userEmail: string): Promise<void> => {
+      const notifs = getStorage<AdminNotification[]>(DB_KEYS.NOTIFICATIONS, []);
+      const newNotif: AdminNotification = {
+          id: Date.now(),
+          type,
+          message,
+          user_email: userEmail,
+          ip_address: '127.0.0.1 (Client)',
+          created_at: Date.now(),
+          read: 0
+      };
+      notifs.unshift(newNotif);
+      if (notifs.length > 50) notifs.pop();
+      setStorage(DB_KEYS.NOTIFICATIONS, notifs);
+  },
+
   getAdminNotifications: async (): Promise<AdminNotification[]> => {
       try {
           const response = await fetch(`${API_URL}/admin/notifications`);
           if (response.ok) {
               return await response.json();
           }
-          return [];
+          throw new Error("Server error");
       } catch (e) {
-          console.error("Failed to fetch notifications");
-          return [];
+          // Fallback to local storage silently
+          return getStorage<AdminNotification[]>(DB_KEYS.NOTIFICATIONS, []);
       }
   },
 
@@ -226,7 +244,8 @@ export const db = {
     items: CartItem[], 
     totalAmount: number, 
     address: Address,
-    customerEmail: string
+    customerEmail: string,
+    prescriptionUrl?: string
   ): Promise<Order> => {
     await delay(1500);
     
@@ -238,9 +257,10 @@ export const db = {
       totalAmount,
       address,
       customerEmail,
-      status: 'placed',
+      status: 'pending_approval', // Default status is now pending approval
+      prescriptionUrl,
       createdAt: Date.now(),
-      deliveryTime: '45 mins'
+      deliveryTime: '45 mins' // Estimate
     };
     
     orders.push(newOrder);
@@ -263,12 +283,15 @@ export const db = {
     return getStorage<Order[]>(DB_KEYS.ORDERS, []);
   },
 
-  updateOrderStatus: async (orderId: string, status: Order['status']): Promise<void> => {
+  updateOrderStatus: async (orderId: string, status: Order['status'], rejectionReason?: string): Promise<void> => {
     await delay(400);
     const orders = getStorage<Order[]>(DB_KEYS.ORDERS, []);
     const index = orders.findIndex(o => o.id === orderId);
     if (index >= 0) {
       orders[index].status = status;
+      if (rejectionReason) {
+        orders[index].rejectionReason = rejectionReason;
+      }
       setStorage(DB_KEYS.ORDERS, orders);
       await db.logActivity('Order Update', `Updated order #${orderId} status to ${status}`);
     }

@@ -31,7 +31,9 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
         const loggedUser = await db.authenticateUser(email, password);
         setUser(loggedUser);
         sessionStorage.setItem('medigen_session_user', JSON.stringify(loggedUser));
+        
         await db.logActivity('Login', `User logged in: ${email}`);
+        await db.logNotification('login', `User Login: ${loggedUser.name}`, email);
         
         // Trigger Email/SMS Notification
         sendLoginAlert(loggedUser).catch(err => console.error("Failed to send login alert", err));
@@ -47,7 +49,9 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
           const loggedUser = await db.verifyOtp(email, otp);
           setUser(loggedUser);
           sessionStorage.setItem('medigen_session_user', JSON.stringify(loggedUser));
+          
           await db.logActivity('OTP Login', `User logged in via OTP: ${email}`);
+          await db.logNotification('login', `OTP Login: ${loggedUser.name}`, email);
           
           sendLoginAlert(loggedUser).catch(err => console.error("Failed to send login alert", err));
           return { success: true };
@@ -70,6 +74,9 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
           const newUser = await db.registerUser(name, email, phone, password);
           setUser(newUser);
           sessionStorage.setItem('medigen_session_user', JSON.stringify(newUser));
+          
+          // Log locally so admin dashboard sees it even if backend is offline
+          await db.logNotification('registration', `New User Registered: ${name}`, email);
           
           // Trigger Notification for new registration login
           sendLoginAlert(newUser).catch(err => console.error("Failed to send login alert", err));

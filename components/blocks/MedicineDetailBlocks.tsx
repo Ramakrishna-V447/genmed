@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Medicine } from '../../types';
-import { Check, AlertTriangle, Info, Pill, Wallet, Store, Scale } from 'lucide-react';
+import { Check, AlertTriangle, Info, Pill, Wallet, Store, Scale, Star } from 'lucide-react';
 
 // --- Price Comparison Block ---
 export const PriceComparisonBlock: React.FC<{ medicine: Medicine }> = ({ medicine }) => {
@@ -13,6 +13,42 @@ export const PriceComparisonBlock: React.FC<{ medicine: Medicine }> = ({ medicin
 
   const savings = medicine.brandedPrice - medicine.genericPrice;
   const savingsPercent = Math.round((savings / medicine.brandedPrice) * 100);
+
+  // Dynamic Brand Data Generation
+  const getComparisonData = (med: Medicine) => {
+      const data = [];
+      
+      // 1. Generic Entry
+      data.push({
+        isGeneric: true,
+        name: med.name,
+        genericName: med.saltComposition.split('IP')[0].split('(')[0].trim(), // Cleaned up name
+        strength: med.name.match(/(\d+\s?mg|gm|ml|%)/i)?.[0] || 'Standard',
+        price: med.genericPrice,
+        manufacturer: 'Jan Aushadhi / Generic',
+        availability: 'In Stock',
+        rating: 4.8
+      });
+
+      // 2. Brand Entries
+      const brands = med.brandExample.split(/[\/,]/).map(s => s.trim()).filter(Boolean);
+      brands.forEach((brand, idx) => {
+         data.push({
+           isGeneric: false,
+           name: brand,
+           genericName: med.saltComposition.split('IP')[0].split('(')[0].trim(),
+           strength: med.name.match(/(\d+\s?mg|gm|ml|%)/i)?.[0] || 'Standard',
+           price: idx === 0 ? med.brandedPrice : Math.ceil(med.brandedPrice * (1 + Math.random() * 0.15)), // Varied price
+           manufacturer: idx === 0 ? 'Standard Pharma' : 'Premium Healthcare Ltd',
+           availability: Math.random() > 0.2 ? 'In Stock' : 'Low Stock',
+           rating: 4.0 + (Math.random() * 0.9)
+         });
+      });
+
+      return data;
+  };
+
+  const comparisonRows = getComparisonData(medicine);
 
   return (
     <>
@@ -28,8 +64,8 @@ export const PriceComparisonBlock: React.FC<{ medicine: Medicine }> = ({ medicin
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
             {/* Branded */}
             <div className="border border-red-100 bg-red-50/50 rounded-xl p-5 flex flex-col items-center justify-center text-center">
-              <span className="text-sm text-gray-500 font-medium uppercase tracking-wide">Standard Brand</span>
-              <span className="text-sm text-gray-400 mt-1">({medicine.brandExample})</span>
+              <span className="text-sm text-gray-500 font-medium uppercase tracking-wide">Market Price</span>
+              <span className="text-sm text-gray-400 mt-1">(Avg. Brand)</span>
               <div className="mt-2 text-2xl font-bold text-gray-400 line-through decoration-red-400 decoration-2">
                 ₹{medicine.brandedPrice.toFixed(2)}
               </div>
@@ -50,73 +86,58 @@ export const PriceComparisonBlock: React.FC<{ medicine: Medicine }> = ({ medicin
             </div>
           </div>
 
-          {/* Feature Comparison Table */}
+          {/* New Detailed Brand Comparison Table */}
           <div className="mb-8">
              <div className="flex items-center gap-2 mb-3">
                  <Scale size={18} className="text-gray-400" />
-                 <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Detailed Comparison</h3>
+                 <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Brand Alternatives</h3>
               </div>
               <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-                <table className="w-full text-sm text-left">
-                  <thead>
-                    <tr className="bg-gray-50 border-b border-gray-200">
-                      <th className="px-4 py-3 font-semibold text-gray-500 w-1/3">Feature</th>
-                      <th className="px-4 py-3 font-bold text-gray-800 w-1/3 bg-green-50/30 border-l border-r border-green-100 text-center">
-                         Generic (This Medicine)
-                      </th>
-                      <th className="px-4 py-3 font-semibold text-gray-500 w-1/3 text-center">
-                         Standard Brand
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    <tr>
-                      <td className="px-4 py-3 text-gray-600 font-medium">Salt Composition</td>
-                      <td className="px-4 py-3 text-gray-800 bg-green-50/30 border-l border-r border-green-100 text-center font-medium">
-                        {medicine.saltComposition.split('IP')[0].split('(')[0].trim()}...
-                      </td>
-                      <td className="px-4 py-3 text-gray-500 text-center">
-                         {medicine.saltComposition.split('IP')[0].split('(')[0].trim()}...
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="px-4 py-3 text-gray-600 font-medium">Effectiveness</td>
-                      <td className="px-4 py-3 text-green-700 bg-green-50/30 border-l border-r border-green-100 text-center font-bold">
-                        100% Same
-                      </td>
-                      <td className="px-4 py-3 text-gray-500 text-center">
-                        100%
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="px-4 py-3 text-gray-600 font-medium">Safety Standard</td>
-                      <td className="px-4 py-3 text-gray-800 bg-green-50/30 border-l border-r border-green-100 text-center">
-                        WHO-GMP Certified
-                      </td>
-                      <td className="px-4 py-3 text-gray-500 text-center">
-                        WHO-GMP Certified
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="px-4 py-3 text-gray-600 font-medium">Dosage Form</td>
-                      <td className="px-4 py-3 text-gray-800 bg-green-50/30 border-l border-r border-green-100 text-center">
-                        Tablet / Capsule
-                      </td>
-                      <td className="px-4 py-3 text-gray-500 text-center">
-                        Tablet / Capsule
-                      </td>
-                    </tr>
-                     <tr className="bg-gray-50/50">
-                      <td className="px-4 py-3 text-gray-600 font-bold">Price per strip ({medicine.stripSize} tabs)</td>
-                      <td className="px-4 py-3 text-green-600 bg-green-50/30 border-l border-r border-green-100 text-center font-extrabold text-lg">
-                        ₹{medicine.genericPrice}
-                      </td>
-                      <td className="px-4 py-3 text-red-400 text-center font-medium line-through">
-                        ₹{medicine.brandedPrice}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm text-left">
+                    <thead>
+                        <tr className="bg-gray-50 border-b border-gray-200 text-xs uppercase tracking-wider text-gray-500">
+                        <th className="px-4 py-3 font-semibold min-w-[140px]">Product</th>
+                        <th className="px-4 py-3 font-semibold hidden sm:table-cell">Manufacturer</th>
+                        <th className="px-4 py-3 font-semibold">Price</th>
+                        <th className="px-4 py-3 font-semibold text-center">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                        {comparisonRows.map((row, idx) => (
+                        <tr key={idx} className={row.isGeneric ? "bg-green-50/40" : "hover:bg-gray-50 transition-colors"}>
+                            <td className="px-4 py-3">
+                                <div className="flex flex-col">
+                                    <span className={`font-bold text-sm ${row.isGeneric ? 'text-green-700' : 'text-gray-800'}`}>
+                                    {row.name} {row.isGeneric && <span className="ml-1.5 px-1.5 py-0.5 bg-green-200 text-green-800 text-[9px] rounded-md border border-green-300 uppercase tracking-tight">Generic</span>}
+                                    </span>
+                                    <span className="text-[11px] text-gray-400 mt-0.5 font-medium">{row.genericName} • {row.strength}</span>
+                                </div>
+                            </td>
+                            <td className="px-4 py-3 hidden sm:table-cell text-gray-600">
+                                <span className="text-xs font-medium block">{row.manufacturer}</span>
+                                <div className="flex items-center gap-1 mt-1">
+                                    <div className="flex text-yellow-400">
+                                        {[...Array(5)].map((_, i) => (
+                                            <Star key={i} size={10} className={i < Math.floor(row.rating) ? "fill-current" : "text-gray-200"} />
+                                        ))}
+                                    </div>
+                                    <span className="text-[10px] text-gray-400">({row.rating.toFixed(1)})</span>
+                                </div>
+                            </td>
+                            <td className="px-4 py-3 font-bold text-gray-800">
+                                ₹{row.price.toFixed(2)}
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                                <span className={`text-[10px] font-bold px-2 py-1 rounded-full border ${row.availability === 'In Stock' ? 'bg-green-100 text-green-600 border-green-200' : 'bg-red-50 text-red-500 border-red-100'}`}>
+                                    {row.availability}
+                                </span>
+                            </td>
+                        </tr>
+                        ))}
+                    </tbody>
+                    </table>
+                </div>
               </div>
           </div>
 

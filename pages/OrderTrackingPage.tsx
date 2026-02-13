@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Check, Package, Truck, Phone, Home, Clock, User, Box, Loader2, AlertCircle, Search, Bell, MessageCircle, Smartphone, ShoppingBag, Store, ChevronRight, Calendar, History } from 'lucide-react';
+import { Check, Package, Truck, Phone, Home, Clock, User, Box, Loader2, AlertCircle, Search, Bell, MessageCircle, Smartphone, ShoppingBag, Store, ChevronRight, Calendar, History, FileText, XCircle } from 'lucide-react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { db } from '../services/db';
 import { Order } from '../types';
@@ -9,6 +9,12 @@ import { useAuth } from '../context/AuthContext';
 // Extracted OrderCard to resolve TypeScript 'key' prop issue and avoid re-creation on render
 const OrderCard: React.FC<{ o: Order }> = ({ o }) => {
     const navigate = useNavigate();
+    
+    let statusColor = 'bg-blue-100 text-blue-700';
+    if (o.status === 'delivered') statusColor = 'bg-green-100 text-green-700';
+    if (o.status === 'rejected') statusColor = 'bg-red-100 text-red-700';
+    if (o.status === 'pending_approval') statusColor = 'bg-yellow-100 text-yellow-700';
+
     return (
         <div 
             onClick={() => navigate(`/track-order?orderId=${o.id}`)} 
@@ -16,14 +22,12 @@ const OrderCard: React.FC<{ o: Order }> = ({ o }) => {
         >
             <div className="flex items-center gap-4">
                 <div className={`p-3 rounded-xl transition-colors ${o.status !== 'delivered' ? 'bg-pastel-blue/20 text-pastel-primary' : 'bg-gray-50 text-gray-400'}`}>
-                    {o.status !== 'delivered' ? <Truck size={20} /> : <Package size={20} />}
+                    {o.status === 'rejected' ? <XCircle size={20} className="text-red-500" /> : (o.status !== 'delivered' ? <Truck size={20} /> : <Package size={20} />)}
                 </div>
                 <div>
                     <div className="flex items-center gap-2">
                         <span className="font-bold text-gray-800 text-sm">#{o.id}</span>
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
-                            o.status === 'delivered' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
-                        }`}>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${statusColor}`}>
                             {o.status.replace('_', ' ')}
                         </span>
                     </div>
@@ -46,15 +50,11 @@ const OrderTrackingPage: React.FC = () => {
   
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState(0);
   const [inputId, setInputId] = useState('');
   
   // User's order history state
   const [myOrders, setMyOrders] = useState<Order[]>([]);
-
-  // Notification States
-  const [notifyWhatsapp, setNotifyWhatsapp] = useState(true);
-  const [notifySms, setNotifySms] = useState(false);
 
   useEffect(() => {
     const fetchOrderData = async () => {
@@ -86,13 +86,23 @@ const OrderTrackingPage: React.FC = () => {
     fetchMyOrders();
   }, [isAuthenticated, user, urlOrderId]);
 
-  // Simulate progress
+  // Determine current timeline step based on status
   useEffect(() => {
     if (!order) return;
-    const timer = setInterval(() => {
-      setCurrentStep(prev => (prev < 2 ? prev + 1 : prev));
-    }, 3000);
-    return () => clearInterval(timer);
+    
+    let step = 0;
+    switch(order.status) {
+        case 'pending_approval': step = 0; break;
+        case 'rejected': step = 0; break; // Stays at 0 but marked failed
+        case 'approved': 
+        case 'placed': // Fallback for old orders
+            step = 1; break;
+        case 'packed': step = 2; break;
+        case 'out_for_delivery': step = 3; break;
+        case 'delivered': step = 4; break;
+        default: step = 0;
+    }
+    setCurrentStep(step);
   }, [order]);
 
   const handleManualTrack = (e: React.FormEvent) => {
@@ -102,10 +112,11 @@ const OrderTrackingPage: React.FC = () => {
   };
 
   const steps = [
-    { id: 0, title: 'Order Placed', sub: 'Order received', time: order ? new Date(order.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '--:--', icon: Package, completed: true },
-    { id: 1, title: 'Packed', sub: 'Processed by shop', time: 'In Progress', icon: Check, completed: currentStep >= 1 },
-    { id: 2, title: 'Dispatched', sub: 'Partner is on the way', time: 'Estimated 15 mins', icon: Truck, completed: currentStep >= 2 },
-    { id: 3, title: 'Delivered', sub: `Expected in ${order?.deliveryTime || 'soon'}`, time: '--:--', icon: Home, completed: false },
+    { id: 0, title: 'Pending Approval', sub: 'Verifying Prescription', time: order ? new Date(order.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '--:--', icon: FileText, completed: currentStep >= 0 },
+    { id: 1, title: 'Order Approved', sub: 'Prescription Verified', time: 'Completed', icon: Check, completed: currentStep >= 1 },
+    { id: 2, title: 'Packed', sub: 'Processed by shop', time: 'In Progress', icon: Package, completed: currentStep >= 2 },
+    { id: 3, title: 'Dispatched', sub: 'Partner is on the way', time: 'Estimated 15 mins', icon: Truck, completed: currentStep >= 3 },
+    { id: 4, title: 'Delivered', sub: `Expected in ${order?.deliveryTime || 'soon'}`, time: '--:--', icon: Home, completed: currentStep >= 4 },
   ];
 
   if (loading) {
@@ -227,18 +238,39 @@ const OrderTrackingPage: React.FC = () => {
                 <Truck className="text-pastel-primary" /> Order #{order.id}
             </h1>
             <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-1 ${
-                order.status === 'delivered' ? 'bg-green-100 text-green-700' : 'bg-green-100 text-green-700 animate-pulse'
+                order.status === 'delivered' ? 'bg-green-100 text-green-700' : 
+                order.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                'bg-blue-100 text-blue-700 animate-pulse'
             }`}>
-                {order.status === 'delivered' ? <Check size={12}/> : <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>} 
-                {order.status === 'delivered' ? 'Delivered' : 'In Transit'}
+                {order.status === 'delivered' ? <Check size={12}/> : 
+                 order.status === 'rejected' ? <XCircle size={12}/> :
+                 <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>} 
+                {order.status.replace('_', ' ')}
             </span>
         </div>
       </div>
 
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-6 animate-fade-in">
         
-        {/* Map & Driver Card */}
-        {order.status !== 'placed' && (
+        {/* Rejected Alert */}
+        {order.status === 'rejected' && (
+            <div className="bg-red-50 border border-red-100 rounded-2xl p-6 flex gap-4 items-start">
+                <AlertCircle className="text-red-600 shrink-0 mt-1" size={24} />
+                <div>
+                    <h3 className="font-bold text-red-800 text-lg">Order Rejected</h3>
+                    <p className="text-sm text-red-700 mt-1 mb-2">Your order could not be processed due to issues with the prescription or details provided.</p>
+                    {order.rejectionReason && (
+                        <div className="bg-white/50 p-3 rounded-xl text-sm font-medium text-red-900 border border-red-100">
+                            <strong>Reason:</strong> {order.rejectionReason}
+                        </div>
+                    )}
+                    <p className="text-xs text-red-500 mt-4">Please try placing a new order with a valid prescription or contact support.</p>
+                </div>
+            </div>
+        )}
+
+        {/* Map & Driver Card (Only show if approved and active) */}
+        {order.status !== 'rejected' && order.status !== 'pending_approval' && order.status !== 'approved' && order.status !== 'placed' && (
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden relative group">
                 {/* Simulated Live Map */}
                 <div className="h-64 w-full bg-gray-200 relative overflow-hidden">
@@ -253,7 +285,7 @@ const OrderTrackingPage: React.FC = () => {
 
                     {/* Driver Marker */}
                     {order.status !== 'delivered' && (
-                        <div className="absolute top-[40%] left-[40%] transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center z-10 transition-all duration-1000" style={{ transform: `translate(${currentStep * 10}px, ${currentStep * 5}px)` }}>
+                        <div className="absolute top-[40%] left-[40%] transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center z-10 transition-all duration-1000" style={{ transform: `translate(${(currentStep - 2) * 10}px, ${(currentStep - 2) * 5}px)` }}>
                             <div className="bg-white p-1.5 rounded-full shadow-md">
                                 <div className="bg-pastel-primary w-4 h-4 rounded-full animate-ping absolute opacity-75"></div>
                                 <div className="bg-pastel-primary w-4 h-4 rounded-full relative border-2 border-white"></div>
@@ -309,35 +341,39 @@ const OrderTrackingPage: React.FC = () => {
                 <h2 className="font-bold text-gray-800 flex items-center gap-2">
                     <Clock size={18} className="text-pastel-primary" /> Delivery Timeline
                 </h2>
-                <span className="text-xs text-gray-400 font-medium">Est. Delivery: {order.deliveryTime}</span>
+                {order.status !== 'rejected' && (
+                    <span className="text-xs text-gray-400 font-medium">Est. Delivery: {order.deliveryTime}</span>
+                )}
             </div>
             
             <div className="relative pl-4 border-l-2 border-gray-100 space-y-8">
                 {steps.map((step, idx) => {
-                    // Update completion logic based on actual order status if available
-                    let isCompleted = step.completed;
-                    if(order.status === 'placed' && idx > 0) isCompleted = false;
-                    if(order.status === 'packed' && idx > 1) isCompleted = false;
-                    if(order.status === 'out_for_delivery' && idx > 2) isCompleted = false;
-                    if(order.status === 'delivered') isCompleted = true;
+                    // Logic to determine completion styling
+                    const isPassed = step.completed;
+                    const isCurrent = idx === currentStep;
+                    const isRejected = order.status === 'rejected';
+
+                    if (isRejected && idx > 0) return null; // Hide subsequent steps if rejected
 
                     return (
-                        <div key={idx} className={`relative pl-8 transition-all duration-500 ${isCompleted || (order.status !== 'delivered' && idx === currentStep) ? 'opacity-100' : 'opacity-40 grayscale'}`}>
+                        <div key={idx} className={`relative pl-8 transition-all duration-500 ${isPassed || isCurrent ? 'opacity-100' : 'opacity-40 grayscale'}`}>
                             {/* Timeline Dot */}
                             <div className={`absolute -left-[23px] top-0 w-6 h-6 rounded-full border-4 border-white shadow-sm flex items-center justify-center transition-colors duration-500 z-10 ${
-                                isCompleted 
+                                isRejected && idx === 0 ? 'bg-red-500' :
+                                isPassed 
                                 ? 'bg-pastel-primary' 
-                                : (order.status !== 'delivered' && idx === currentStep ? 'bg-orange-400 animate-pulse' : 'bg-gray-200')
+                                : (isCurrent ? 'bg-orange-400 animate-pulse' : 'bg-gray-200')
                             }`}>
-                                {isCompleted && <Check size={12} className="text-white" />}
+                                {isRejected && idx === 0 ? <XCircle size={12} className="text-white"/> : 
+                                 isPassed ? <Check size={12} className="text-white" /> : null}
                             </div>
 
                             <div>
-                                <h3 className={`font-bold text-sm ${isCompleted || (order.status !== 'delivered' && idx === currentStep) ? 'text-gray-900' : 'text-gray-700'}`}>
-                                    {step.title}
+                                <h3 className={`font-bold text-sm ${isRejected && idx === 0 ? 'text-red-600' : (isPassed || isCurrent ? 'text-gray-900' : 'text-gray-700')}`}>
+                                    {isRejected && idx === 0 ? 'Verification Failed' : step.title}
                                 </h3>
                                 <div className="flex justify-between items-center mt-1">
-                                    <p className="text-xs text-gray-500">{step.sub}</p>
+                                    <p className="text-xs text-gray-500">{isRejected && idx === 0 ? 'Order Rejected by Admin' : step.sub}</p>
                                     <span className="text-[10px] text-gray-400 font-medium bg-gray-50 px-2 py-0.5 rounded">{step.time}</span>
                                 </div>
                             </div>

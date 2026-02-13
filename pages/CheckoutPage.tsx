@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { db } from '../services/db';
-import { MapPin, CreditCard, CheckCircle2, Home, Building, Truck, Loader2, Mail, Navigation, RefreshCw } from 'lucide-react';
+import { MapPin, CreditCard, CheckCircle2, Home, Building, Truck, Loader2, Mail, Navigation, RefreshCw, FileText, Upload, X, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const CheckoutPage: React.FC = () => {
@@ -14,6 +14,10 @@ const CheckoutPage: React.FC = () => {
   const [step, setStep] = useState(1);
   const [addressType, setAddressType] = useState<'home' | 'work'>('home');
   
+  // Prescription State
+  const [prescriptionFile, setPrescriptionFile] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState('');
+
   // Distance Simulation State
   const [distance, setDistance] = useState<number>(2.5); // Default demo distance
   const [isCalculatingDist, setIsCalculatingDist] = useState(false);
@@ -59,6 +63,24 @@ const CheckoutPage: React.FC = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handlePrescriptionUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+      setUploadError('');
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      // Max 5MB
+      if (file.size > 5 * 1024 * 1024) {
+          setUploadError('File too large (Max 5MB).');
+          return;
+      }
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+          setPrescriptionFile(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+  };
+
   const simulateLocationCheck = () => {
       setIsCalculatingDist(true);
       // Simulate API call
@@ -74,6 +96,13 @@ const CheckoutPage: React.FC = () => {
     e.preventDefault();
     if (items.length === 0) return;
 
+    if (!prescriptionFile) {
+        setUploadError('Prescription is required to place an order.');
+        // Scroll to error
+        document.getElementById('prescription-section')?.scrollIntoView({ behavior: 'smooth' });
+        return;
+    }
+
     setIsProcessing(true);
 
     try {
@@ -86,7 +115,13 @@ const CheckoutPage: React.FC = () => {
             type: addressType
         };
 
-        const newOrder = await db.saveOrder(items, finalTotal, address, formData.email);
+        const newOrder = await db.saveOrder(
+            items, 
+            finalTotal, 
+            address, 
+            formData.email, 
+            prescriptionFile
+        );
         
         setIsProcessing(false);
         setStep(3); // Success Step
@@ -109,8 +144,8 @@ const CheckoutPage: React.FC = () => {
                   <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
                       <CheckCircle2 size={48} className="text-green-600" />
                   </div>
-                  <h2 className="text-2xl font-bold text-gray-800 mb-2">Order Confirmed!</h2>
-                  <p className="text-gray-500 mb-2">A confirmation email has been sent to:</p>
+                  <h2 className="text-2xl font-bold text-gray-800 mb-2">Order Placed Successfully!</h2>
+                  <p className="text-gray-500 mb-2">Your order is pending admin approval.</p>
                   <p className="font-bold text-gray-800 mb-6 bg-gray-50 py-2 px-4 rounded-lg inline-block">{formData.email}</p>
                   
                   <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden mb-2">
@@ -220,6 +255,58 @@ const CheckoutPage: React.FC = () => {
                             </button>
                         </div>
                     </div>
+                </div>
+
+                {/* Prescription Upload Section */}
+                <div id="prescription-section" className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+                    <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        <FileText className="text-pastel-primary" /> Upload Prescription
+                        <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full border border-red-200 uppercase">Required</span>
+                    </h2>
+                    
+                    <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl mb-4 text-sm text-blue-800">
+                        <p className="font-bold mb-1">Doctor's prescription is mandatory.</p>
+                        <p className="text-xs text-blue-600">Please upload a clear image of your valid prescription for verification by our pharmacists.</p>
+                    </div>
+
+                    {!prescriptionFile ? (
+                        <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-pastel-primary hover:bg-pastel-blue/5 transition-all group relative">
+                            <input 
+                                type="file" 
+                                accept="image/*"
+                                onChange={handlePrescriptionUpload}
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                            />
+                            <div className="bg-gray-100 p-4 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
+                                <Upload className="text-gray-400 group-hover:text-pastel-primary" size={24} />
+                            </div>
+                            <p className="font-bold text-gray-600 group-hover:text-pastel-primary">Click to Upload Image</p>
+                            <p className="text-xs text-gray-400 mt-1">JPG, PNG (Max 5MB)</p>
+                        </div>
+                    ) : (
+                        <div className="relative border border-gray-200 rounded-xl p-2 bg-gray-50 flex items-center gap-4">
+                            <div className="w-16 h-16 bg-white rounded-lg border border-gray-200 overflow-hidden shrink-0">
+                                <img src={prescriptionFile} alt="Prescription" className="w-full h-full object-cover" />
+                            </div>
+                            <div className="flex-1 overflow-hidden">
+                                <p className="font-bold text-sm text-gray-700 truncate">Prescription Uploaded</p>
+                                <p className="text-xs text-green-600 font-medium flex items-center gap-1"><CheckCircle2 size={12}/> Ready to submit</p>
+                            </div>
+                            <button 
+                                type="button"
+                                onClick={() => setPrescriptionFile(null)}
+                                className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+                    )}
+                    
+                    {uploadError && (
+                        <div className="mt-3 text-sm text-red-500 flex items-center gap-2 bg-red-50 p-3 rounded-lg border border-red-100 animate-fade-in">
+                            <AlertCircle size={16} /> {uploadError}
+                        </div>
+                    )}
                 </div>
 
                 {/* Payment Section */}

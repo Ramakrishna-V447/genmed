@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Package, ShoppingCart, Settings, LogOut, 
   Plus, Edit2, Trash2, Save, X, Activity, DollarSign, AlertTriangle, FileText,
   Moon, Sun, ShieldCheck, TrendingUp, Users, Clock, BarChart3, ChevronUp, ArrowRight, Calendar,
-  Bell, UserPlus, LogIn, Upload, Link as LinkIcon, Image as ImageIcon, CheckCircle2
+  Bell, UserPlus, LogIn, Upload, Link as LinkIcon, Image as ImageIcon, CheckCircle2, Eye, XCircle, Check
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -176,8 +176,8 @@ const AdminDashboard: React.FC = () => {
 
     const todayOrders = ordersData.filter(o => new Date(o.createdAt).toISOString().split('T')[0] === todayStr).length;
     const monthOrders = ordersData.filter(o => new Date(o.createdAt).getMonth() === currentMonth).length;
-    const pending = ordersData.filter(o => o.status !== 'delivered').length;
-    const revenue = ordersData.reduce((acc, o) => acc + o.totalAmount, 0);
+    const pending = ordersData.filter(o => o.status !== 'delivered' && o.status !== 'rejected').length;
+    const revenue = ordersData.filter(o => o.status !== 'rejected').reduce((acc, o) => acc + o.totalAmount, 0);
     const lowStock = medsData.filter(m => m.stock < 20).length;
     
     // Check expiry
@@ -191,9 +191,11 @@ const AdminDashboard: React.FC = () => {
     // Top Medicines Logic
     const salesMap: Record<string, number> = {};
     ordersData.forEach(o => {
-        o.items.forEach(i => {
-            salesMap[i.name] = (salesMap[i.name] || 0) + i.quantity;
-        });
+        if(o.status !== 'rejected') {
+            o.items.forEach(i => {
+                salesMap[i.name] = (salesMap[i.name] || 0) + i.quantity;
+            });
+        }
     });
     const topMeds = Object.entries(salesMap)
         .map(([name, count]) => ({ name, count }))
@@ -321,8 +323,24 @@ const AdminDashboard: React.FC = () => {
   };
 
   const handleUpdateOrderStatus = async (orderId: string, status: Order['status']) => {
-    await db.updateOrderStatus(orderId, status);
+    if (status === 'rejected') {
+        const reason = window.prompt("Please enter a reason for rejecting this order:");
+        if (reason) {
+            await db.updateOrderStatus(orderId, status, reason);
+        } else {
+            return; // Cancel rejection if no reason given
+        }
+    } else {
+        await db.updateOrderStatus(orderId, status);
+    }
     fetchData();
+  };
+
+  const handleViewPrescription = (prescriptionUrl: string) => {
+      const win = window.open();
+      if(win) {
+          win.document.write(`<iframe src="${prescriptionUrl}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`);
+      }
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -696,28 +714,78 @@ const AdminDashboard: React.FC = () => {
               
               <div className="space-y-4">
                  {orders.map(order => (
-                    <div key={order.id} className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm p-6 flex flex-col md:flex-row gap-6 justify-between items-start md:items-center transition-colors">
-                       <div>
-                          <div className="flex items-center gap-3 mb-2">
-                             <h3 className="text-lg font-bold text-gray-800 dark:text-white">Order #{order.id}</h3>
-                             <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-slate-700 px-2 py-0.5 rounded-md">{new Date(order.createdAt).toLocaleDateString()}</span>
-                          </div>
-                          <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Customer: <span className="font-medium text-gray-700 dark:text-gray-200">{order.customerEmail}</span></p>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">Total: <span className="font-bold text-pastel-primary">₹{order.totalAmount}</span> • {order.items.length} Items</p>
+                    <div key={order.id} className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm p-6 flex flex-col gap-4 transition-colors">
+                       <div className="flex flex-col md:flex-row gap-6 justify-between items-start md:items-center">
+                            <div>
+                                <div className="flex items-center gap-3 mb-2">
+                                    <h3 className="text-lg font-bold text-gray-800 dark:text-white">Order #{order.id}</h3>
+                                    <span className={`text-xs font-bold uppercase px-2 py-0.5 rounded-md ${
+                                        order.status === 'pending_approval' ? 'bg-yellow-100 text-yellow-700' :
+                                        order.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                                        order.status === 'delivered' ? 'bg-green-100 text-green-700' :
+                                        'bg-blue-100 text-blue-700'
+                                    }`}>
+                                        {order.status.replace('_', ' ')}
+                                    </span>
+                                </div>
+                                <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Customer: <span className="font-medium text-gray-700 dark:text-gray-200">{order.customerEmail}</span></p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">Total: <span className="font-bold text-pastel-primary">₹{order.totalAmount}</span> • {order.items.length} Items</p>
+                                {order.status === 'rejected' && order.rejectionReason && (
+                                    <p className="text-xs text-red-500 mt-2 bg-red-50 dark:bg-red-900/10 p-2 rounded-lg border border-red-100 dark:border-red-900/30">
+                                        <strong>Rejection Reason:</strong> {order.rejectionReason}
+                                    </p>
+                                )}
+                            </div>
+                            
+                            <div className="flex items-center gap-3">
+                                {order.status === 'pending_approval' ? (
+                                    <div className="flex gap-2">
+                                        <button 
+                                            onClick={() => handleUpdateOrderStatus(order.id, 'rejected')}
+                                            className="px-4 py-2 bg-red-50 text-red-600 border border-red-100 rounded-xl font-bold text-sm hover:bg-red-100 transition-colors flex items-center gap-2"
+                                        >
+                                            <XCircle size={16} /> Reject
+                                        </button>
+                                        <button 
+                                            onClick={() => handleUpdateOrderStatus(order.id, 'approved')}
+                                            className="px-4 py-2 bg-green-500 text-white rounded-xl font-bold text-sm hover:bg-green-600 transition-colors shadow-sm flex items-center gap-2"
+                                        >
+                                            <CheckCircle2 size={16} /> Approve
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <select 
+                                        value={order.status}
+                                        onChange={(e) => handleUpdateOrderStatus(order.id, e.target.value as Order['status'])}
+                                        className="bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 text-gray-700 dark:text-gray-200 text-sm rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-pastel-primary outline-none cursor-pointer"
+                                        disabled={order.status === 'rejected'}
+                                    >
+                                        <option value="pending_approval" disabled>Pending</option>
+                                        <option value="approved">Approved</option>
+                                        <option value="packed">Packed</option>
+                                        <option value="out_for_delivery">Out for Delivery</option>
+                                        <option value="delivered">Delivered</option>
+                                        <option value="rejected" disabled>Rejected</option>
+                                    </select>
+                                )}
+                            </div>
                        </div>
                        
-                       <div className="flex items-center gap-3">
-                          <select 
-                             value={order.status}
-                             onChange={(e) => handleUpdateOrderStatus(order.id, e.target.value as Order['status'])}
-                             className="bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 text-gray-700 dark:text-gray-200 text-sm rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-pastel-primary outline-none cursor-pointer"
-                          >
-                             <option value="placed">Placed</option>
-                             <option value="packed">Packed</option>
-                             <option value="out_for_delivery">Out for Delivery</option>
-                             <option value="delivered">Delivered</option>
-                          </select>
-                       </div>
+                       {/* Prescription Review Section */}
+                       {order.prescriptionUrl && (
+                           <div className="border-t border-gray-100 dark:border-slate-700 pt-4 mt-2">
+                               <div className="flex items-center gap-2 mb-2">
+                                   <FileText size={16} className="text-gray-400"/>
+                                   <span className="text-sm font-bold text-gray-600 dark:text-gray-300">Prescription Attached</span>
+                               </div>
+                               <button 
+                                   onClick={() => handleViewPrescription(order.prescriptionUrl!)}
+                                   className="text-sm text-pastel-primary hover:underline flex items-center gap-1 font-medium bg-pastel-blue/10 px-3 py-2 rounded-lg w-fit"
+                               >
+                                   <Eye size={14} /> View Prescription Image
+                               </button>
+                           </div>
+                       )}
                     </div>
                  ))}
                  {orders.length === 0 && (

@@ -92,7 +92,9 @@ export interface Order {
   id: string;
   items: CartItem[];
   totalAmount: number;
-  status: 'placed' | 'packed' | 'out_for_delivery' | 'delivered';
+  status: 'pending_approval' | 'approved' | 'rejected' | 'placed' | 'packed' | 'out_for_delivery' | 'delivered';
+  prescriptionUrl?: string; // URL or Base64 of the prescription
+  rejectionReason?: string; // If status is rejected
   address: Address;
   customerEmail: string;
   createdAt: number;
