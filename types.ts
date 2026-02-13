@@ -47,7 +47,11 @@ export enum MedicineCategory {
   ANTIBIOTIC = 'Antibiotic',
   DIABETES = 'Diabetes',
   HEART = 'Heart Health',
-  SUPPLEMENTS = 'Vitamins & Supplements'
+  SUPPLEMENTS = 'Vitamins & Supplements',
+  SKIN = 'Skin Care',
+  NEURO = 'Neurology & Mental Health',
+  THYROID = 'Thyroid',
+  WOMEN = 'Women\'s Health'
 }
 
 export interface User {
