@@ -11,6 +11,7 @@ export interface Medicine {
   brandExample: string;
   saltComposition: string;
   batchNumber: string; // New field for batch tracking
+  stripSize: number; // Number of tablets/capsules per sheet
   category: MedicineCategory;
   commonUse: string[];
   description: string;

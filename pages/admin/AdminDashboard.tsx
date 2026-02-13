@@ -242,6 +242,7 @@ const AdminDashboard: React.FC = () => {
       brandExample: editingMed.brandExample || '',
       saltComposition: editingMed.saltComposition || '',
       batchNumber: editingMed.batchNumber || `BATCH-${Date.now().toString().slice(-4)}`,
+      stripSize: Number(editingMed.stripSize) || 10,
       category: editingMed.category || MedicineCategory.PAIN,
       commonUse: Array.isArray(editingMed.commonUse) ? editingMed.commonUse : splitStr(editingMed.commonUse),
       description: editingMed.description || '',
@@ -287,6 +288,7 @@ const AdminDashboard: React.FC = () => {
             brandExample: '',
             saltComposition: '',
             batchNumber: '',
+            stripSize: 10,
             category: MedicineCategory.FEVER,
             marketRates: [],
             stock: 100,
@@ -578,6 +580,7 @@ const AdminDashboard: React.FC = () => {
                              <th className="p-4">Image</th>
                              <th className="p-4">Details</th>
                              <th className="p-4">Batch Info</th>
+                             <th className="p-4">Pricing (Per Strip)</th>
                              <th className="p-4">Stock</th>
                              <th className="p-4">Expiry Status</th>
                              <th className="p-4 text-center">Actions</th>
@@ -605,6 +608,10 @@ const AdminDashboard: React.FC = () => {
                                     </td>
                                     <td className="p-4">
                                         <div className="font-mono text-xs text-gray-600 dark:text-gray-300">{med.batchNumber || 'N/A'}</div>
+                                    </td>
+                                    <td className="p-4">
+                                        <div className="font-medium">₹{med.genericPrice}</div>
+                                        <div className="text-xs text-gray-500">for {med.stripSize} tabs</div>
                                     </td>
                                     <td className="p-4">
                                     <span className={`px-2 py-1 rounded-md text-xs font-bold ${med.stock < 20 ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'}`}>
@@ -838,6 +845,17 @@ const AdminDashboard: React.FC = () => {
                                 value={editingMed?.brandedPrice || ''}
                                 onChange={e => setEditingMed({...editingMed, brandedPrice: e.target.value})}
                                 required
+                            />
+                        </div>
+                         <div className="group">
+                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Tablets per Strip</label>
+                            <input 
+                                type="number"
+                                className="w-full p-3 bg-gray-50 dark:bg-slate-700 dark:text-white rounded-xl border-transparent focus:bg-white dark:focus:bg-slate-600 focus:ring-2 focus:ring-pastel-primary outline-none transition-colors"
+                                value={editingMed?.stripSize || ''}
+                                onChange={e => setEditingMed({...editingMed, stripSize: e.target.value})}
+                                required
+                                placeholder="10"
                             />
                         </div>
                         <div className="group">

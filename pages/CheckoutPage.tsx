@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { db } from '../services/db';
-import { MapPin, CreditCard, CheckCircle2, Home, Building, Truck, Loader2, Mail } from 'lucide-react';
+import { MapPin, CreditCard, CheckCircle2, Home, Building, Truck, Loader2, Mail, Navigation, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const CheckoutPage: React.FC = () => {
@@ -14,15 +14,25 @@ const CheckoutPage: React.FC = () => {
   const [step, setStep] = useState(1);
   const [addressType, setAddressType] = useState<'home' | 'work'>('home');
   
+  // Distance Simulation State
+  const [distance, setDistance] = useState<number>(2.5); // Default demo distance
+  const [isCalculatingDist, setIsCalculatingDist] = useState(false);
+
   // Billing Constants
   const DELIVERY_THRESHOLD = 200;
-  const DELIVERY_FEE = 40;
   const PLATFORM_FEE = 10;
-  const GST_RATE = 0.12;
+  
+  // Dynamic Delivery Logic
+  const getDeliveryFee = (dist: number, subtotal: number) => {
+      if (subtotal > DELIVERY_THRESHOLD) return 0;
+      if (dist <= 1) return 15;
+      if (dist <= 2) return 20;
+      if (dist <= 5) return 40;
+      return 60; // Base charge for > 5km
+  };
 
-  const gstAmount = cartTotal * GST_RATE;
-  const deliveryCharge = cartTotal > DELIVERY_THRESHOLD ? 0 : DELIVERY_FEE;
-  const finalTotal = cartTotal + gstAmount + deliveryCharge + PLATFORM_FEE;
+  const deliveryCharge = getDeliveryFee(distance, cartTotal);
+  const finalTotal = cartTotal + deliveryCharge + PLATFORM_FEE;
   
   // Form State
   const [formData, setFormData] = useState({
@@ -47,6 +57,17 @@ const CheckoutPage: React.FC = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const simulateLocationCheck = () => {
+      setIsCalculatingDist(true);
+      // Simulate API call
+      setTimeout(() => {
+          // Generate random distance between 0.5 and 6.0 km
+          const newDist = parseFloat((Math.random() * 5.5 + 0.5).toFixed(1));
+          setDistance(newDist);
+          setIsCalculatingDist(false);
+      }, 1500);
   };
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
@@ -142,12 +163,24 @@ const CheckoutPage: React.FC = () => {
                     </h2>
 
                     {/* Visual Map for Pinning */}
-                    <div className="mb-6 h-48 bg-gray-100 rounded-xl relative overflow-hidden group border border-gray-200 cursor-crosshair">
+                    <div className="mb-6 h-48 bg-gray-100 rounded-xl relative overflow-hidden group border border-gray-200">
                          <div className="absolute inset-0 bg-[url('https://upload.wikimedia.org/wikipedia/commons/e/ec/Map_of_Bangalore.jpg')] bg-cover opacity-60"></div>
                          <div className="absolute inset-0 flex items-center justify-center">
-                             <div className="bg-pastel-primary text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-2 font-bold transform group-hover:-translate-y-2 transition-transform">
-                                <MapPin size={18} /> Confirm Location
-                             </div>
+                             <button 
+                                type="button"
+                                onClick={simulateLocationCheck}
+                                disabled={isCalculatingDist}
+                                className="bg-pastel-primary text-white px-5 py-2.5 rounded-full shadow-lg flex items-center gap-2 font-bold transform hover:-translate-y-1 active:translate-y-0 transition-all disabled:opacity-80 disabled:cursor-not-allowed"
+                            >
+                                {isCalculatingDist ? <Loader2 className="animate-spin" size={18} /> : <Navigation size={18} />}
+                                {isCalculatingDist ? 'Calculating...' : 'Recalculate Location'}
+                             </button>
+                         </div>
+                         
+                         {/* Simulated Distance Display */}
+                         <div className="absolute bottom-3 left-3 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm text-xs font-bold text-gray-700 flex items-center gap-2">
+                             <MapPin size={14} className="text-pastel-secondary" /> 
+                             Distance: {distance} km
                          </div>
                     </div>
 
@@ -224,17 +257,22 @@ const CheckoutPage: React.FC = () => {
                              <span>₹{cartTotal.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between text-gray-600">
-                             <span>GST (12%)</span>
-                             <span>₹{gstAmount.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between text-gray-600">
-                             <span>Delivery Fee</span>
+                             <div className="flex flex-col">
+                                <span>Delivery Fee</span>
+                                <span className="text-[10px] text-gray-400">({distance} km)</span>
+                             </div>
                              {deliveryCharge === 0 ? (
                                 <span className="text-green-500 font-medium">Free</span>
                              ) : (
-                                <span>₹{DELIVERY_FEE.toFixed(2)}</span>
+                                <span>₹{deliveryCharge.toFixed(2)}</span>
                              )}
                         </div>
+                        {deliveryCharge > 0 && (
+                            <div className="text-[10px] text-gray-400 bg-gray-50 p-2 rounded">
+                                <span className="block">Distance Based Pricing:</span>
+                                1km: ₹15 | 2km: ₹20 | 5km: ₹40
+                            </div>
+                        )}
                         <div className="flex justify-between text-gray-600">
                              <span>Platform Fee</span>
                              <span>₹{PLATFORM_FEE.toFixed(2)}</span>

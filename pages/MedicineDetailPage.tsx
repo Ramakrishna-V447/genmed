@@ -1,8 +1,8 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { MEDICINES } from '../constants';
-import { ArrowLeft, Heart, ShoppingCart, Zap, CheckCircle2, AlertTriangle, ShieldOff } from 'lucide-react';
+import { ArrowLeft, Heart, ShoppingCart, Zap, CheckCircle2, AlertTriangle, ShieldOff, Calculator, Percent } from 'lucide-react';
 import { PriceComparisonBlock, UsageBlock, DosageBlock, DetailsBlock } from '../components/blocks/MedicineDetailBlocks';
 import { useBookmarks } from '../context/BookmarkContext';
 import { useCart } from '../context/CartContext';
@@ -16,6 +16,9 @@ const MedicineDetailPage: React.FC = () => {
   const { addToCart } = useCart();
   const { isAuthenticated } = useAuth();
   
+  // Calculator State
+  const [sheetCount, setSheetCount] = useState(1);
+  const [tabletCount, setTabletCount] = useState(0);
   const [added, setAdded] = React.useState(false);
 
   useEffect(() => {
@@ -30,6 +33,22 @@ const MedicineDetailPage: React.FC = () => {
       </div>
     );
   }
+
+  // --- Pricing Logic ---
+  const pricePerStrip = medicine.genericPrice;
+  const stripSize = medicine.stripSize;
+  const pricePerTablet = pricePerStrip / stripSize;
+  
+  const totalTabletsOrdered = (sheetCount * stripSize) + tabletCount;
+  
+  // Bulk Discount Logic
+  let discountPercent = 0;
+  if (totalTabletsOrdered >= 100) discountPercent = 10;
+  else if (totalTabletsOrdered >= 50) discountPercent = 5;
+
+  const rawSubtotal = totalTabletsOrdered * pricePerTablet;
+  const discountAmount = rawSubtotal * (discountPercent / 100);
+  const finalPrice = rawSubtotal - discountAmount;
 
   // Check Expiry Logic
   const checkExpiringSoon = (dateStr: string) => {
@@ -52,16 +71,25 @@ const MedicineDetailPage: React.FC = () => {
   };
 
   const handleAddToCart = () => {
-    if (isExpiringSoon) return;
-    addToCart(medicine);
+    if (isExpiringSoon || totalTabletsOrdered <= 0) return;
+    addToCart(medicine, totalTabletsOrdered);
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
   };
 
   const handleBuyNow = () => {
-    if (isExpiringSoon) return;
-    addToCart(medicine);
+    if (isExpiringSoon || totalTabletsOrdered <= 0) return;
+    addToCart(medicine, totalTabletsOrdered);
     navigate('/cart');
+  };
+
+  // Input Handlers
+  const handleSheetChange = (val: number) => {
+      setSheetCount(val < 0 ? 0 : val);
+  };
+  const handleTabletChange = (val: number) => {
+      // Allow tablets up to strip size - 1 (usually), but keeping it flexible
+      setTabletCount(val < 0 ? 0 : val);
   };
 
   return (
@@ -98,46 +126,21 @@ const MedicineDetailPage: React.FC = () => {
 
       <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
         
-        {/* E-commerce Action Block (Mobile Top) */}
-        <div className="lg:hidden bg-white p-5 rounded-3xl shadow-sm border border-gray-100 flex flex-col gap-4">
-            <div className="flex justify-between items-center">
-                <div>
-                    <span className="text-xs text-gray-400 uppercase tracking-wide font-bold">Best Price</span>
-                    <div className="text-3xl font-bold text-pastel-primary">
-                         {isAuthenticated ? `₹${medicine.genericPrice.toFixed(2)}` : 'Login'}
-                    </div>
-                </div>
-                <span className={`px-3 py-1 rounded-lg text-xs font-bold ${isExpiringSoon ? 'bg-orange-100 text-orange-600' : 'bg-pastel-mint text-pastel-primary'}`}>
-                    {isExpiringSoon ? 'Restricted' : 'In Stock'}
+        {/* Medicine Image Banner */}
+        <div className="w-full h-56 sm:h-72 lg:h-80 bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 relative group animate-slide-up">
+             <img 
+                src={medicine.imageUrl} 
+                alt={medicine.name}
+                className="w-full h-full object-cover img-soft group-hover:scale-105 transition-transform duration-700"
+             />
+             <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+             
+             {/* Optional Overlay Text on Image Hover */}
+             <div className="absolute bottom-4 left-4 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <span className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border border-white/30">
+                    {medicine.category}
                 </span>
-            </div>
-            {isAuthenticated && (
-                <div className="grid grid-cols-2 gap-3">
-                    {isExpiringSoon ? (
-                        <div className="col-span-2 bg-orange-50 border border-orange-100 text-orange-600 p-3 rounded-xl text-xs text-center font-medium flex items-center justify-center gap-2">
-                            <ShieldOff size={16} /> Purchase disabled due to short expiry
-                        </div>
-                    ) : (
-                        <>
-                            <button 
-                                onClick={handleAddToCart}
-                                className={`flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold transition-all ${
-                                    added ? 'bg-pastel-secondary text-white' : 'bg-pastel-blue text-pastel-primary hover:bg-pastel-mint'
-                                }`}
-                            >
-                                {added ? <CheckCircle2 size={18}/> : <ShoppingCart size={18} />}
-                                {added ? 'Added' : 'Add to Cart'}
-                            </button>
-                            <button 
-                                onClick={handleBuyNow}
-                                className="flex items-center justify-center gap-2 bg-pastel-primary text-white py-3.5 rounded-xl font-bold hover:bg-pastel-secondary transition-all shadow-lg shadow-teal-500/20"
-                            >
-                                <Zap size={18} /> Buy Now
-                            </button>
-                        </>
-                    )}
-                </div>
-            )}
+             </div>
         </div>
 
         {/* Block 1: Price Comparison (Full Width) */}
@@ -146,54 +149,129 @@ const MedicineDetailPage: React.FC = () => {
                 <PriceComparisonBlock medicine={medicine} />
             </section>
             
-            {/* Desktop Buy Box */}
-            <div className="hidden lg:block w-96 shrink-0">
-                <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-gray-100 sticky top-40">
-                    <h3 className="text-lg font-bold text-gray-800 mb-6">Purchase Options</h3>
+            {/* Configure Order / Buy Box */}
+            <div className="w-full lg:w-[28rem] shrink-0">
+                <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 sticky top-40 animate-slide-up" style={{ animationDelay: '150ms' }}>
                     
-                    <div className="mb-8 p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                        <div className="text-sm text-gray-500 mb-1 font-medium">Generic Price</div>
-                        <div className="text-4xl font-extrabold text-pastel-primary">
-                            {isAuthenticated ? `₹${medicine.genericPrice}` : '---'}
+                    <div className="flex items-center gap-2 mb-6">
+                         <div className="bg-pastel-blue p-2 rounded-lg text-pastel-primary"><Calculator size={20}/></div>
+                         <h3 className="text-lg font-bold text-gray-800">Configure Order</h3>
+                    </div>
+
+                    <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100 mb-6">
+                         <div className="flex justify-between items-center mb-2">
+                             <span className="text-xs font-bold text-gray-500 uppercase">Unit Price</span>
+                             <span className="text-sm font-medium text-gray-700">1 Sheet = {medicine.stripSize} Tabs</span>
+                         </div>
+                         <div className="flex justify-between items-end">
+                              <div>
+                                  <div className="text-2xl font-bold text-gray-800">₹{pricePerStrip.toFixed(2)}</div>
+                                  <div className="text-xs text-gray-400">Per Sheet</div>
+                              </div>
+                              <div className="text-right">
+                                  <div className="text-lg font-bold text-gray-600">₹{pricePerTablet.toFixed(2)}</div>
+                                  <div className="text-xs text-gray-400">Per Tablet</div>
+                              </div>
+                         </div>
+                    </div>
+
+                    {/* Inputs */}
+                    <div className="grid grid-cols-2 gap-4 mb-6">
+                        <div>
+                             <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5 ml-1">Sheets</label>
+                             <div className="flex items-center bg-gray-50 rounded-xl border border-gray-200">
+                                 <button onClick={() => handleSheetChange(sheetCount - 1)} className="p-3 text-gray-400 hover:text-pastel-primary transition-colors hover:bg-white rounded-l-xl border-r border-gray-100">-</button>
+                                 <input 
+                                    type="number" 
+                                    min="0"
+                                    value={sheetCount}
+                                    onChange={(e) => handleSheetChange(parseInt(e.target.value) || 0)}
+                                    className="w-full bg-transparent text-center font-bold text-gray-800 outline-none"
+                                 />
+                                 <button onClick={() => handleSheetChange(sheetCount + 1)} className="p-3 text-gray-400 hover:text-pastel-primary transition-colors hover:bg-white rounded-r-xl border-l border-gray-100">+</button>
+                             </div>
                         </div>
-                        {isAuthenticated && <div className="text-xs text-gray-400 mt-2 font-medium">Inclusive of all taxes</div>}
+                        <div>
+                             <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5 ml-1">Tablets</label>
+                             <div className="flex items-center bg-gray-50 rounded-xl border border-gray-200">
+                                 <button onClick={() => handleTabletChange(tabletCount - 1)} className="p-3 text-gray-400 hover:text-pastel-primary transition-colors hover:bg-white rounded-l-xl border-r border-gray-100">-</button>
+                                 <input 
+                                    type="number" 
+                                    min="0"
+                                    value={tabletCount}
+                                    onChange={(e) => handleTabletChange(parseInt(e.target.value) || 0)}
+                                    className="w-full bg-transparent text-center font-bold text-gray-800 outline-none"
+                                 />
+                                 <button onClick={() => handleTabletChange(tabletCount + 1)} className="p-3 text-gray-400 hover:text-pastel-primary transition-colors hover:bg-white rounded-r-xl border-l border-gray-100">+</button>
+                             </div>
+                        </div>
+                    </div>
+
+                    {/* Calculation Summary */}
+                    <div className="space-y-2 mb-6 text-sm">
+                        <div className="flex justify-between text-gray-500">
+                             <span>Total Quantity</span>
+                             <span className="font-medium">{totalTabletsOrdered} Tablets</span>
+                        </div>
+                        <div className="flex justify-between text-gray-500">
+                             <span>Base Price</span>
+                             <span>₹{rawSubtotal.toFixed(2)}</span>
+                        </div>
+                        {discountPercent > 0 && (
+                            <div className="flex justify-between text-green-600 font-medium">
+                                <span className="flex items-center gap-1"><Percent size={12}/> Bulk Discount ({discountPercent}%)</span>
+                                <span>- ₹{discountAmount.toFixed(2)}</span>
+                            </div>
+                        )}
+                        <div className="pt-3 border-t border-dashed border-gray-200 flex justify-between items-center">
+                             <span className="font-bold text-gray-800">Final Total</span>
+                             <span className="text-2xl font-extrabold text-pastel-primary">₹{finalPrice.toFixed(2)}</span>
+                        </div>
+                    </div>
+
+                    {/* Bulk Offer Badges */}
+                    <div className="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
+                         <div className={`shrink-0 px-3 py-1.5 rounded-lg border text-xs font-bold transition-colors ${discountPercent === 5 ? 'bg-green-100 border-green-200 text-green-700' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
+                             50+ Tabs: 5% Off
+                         </div>
+                         <div className={`shrink-0 px-3 py-1.5 rounded-lg border text-xs font-bold transition-colors ${discountPercent === 10 ? 'bg-green-100 border-green-200 text-green-700' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
+                             100+ Tabs: 10% Off
+                         </div>
                     </div>
 
                     {isAuthenticated ? (
-                        <div className="space-y-4">
+                        <div className="space-y-3">
                              {isExpiringSoon ? (
-                                <div className="bg-orange-50 border border-orange-100 rounded-2xl p-4 text-center">
-                                    <AlertTriangle className="mx-auto text-orange-500 mb-2" size={24} />
-                                    <p className="text-orange-700 font-bold text-sm">Unavailable for Purchase</p>
-                                    <p className="text-orange-600 text-xs mt-1">This batch is expiring soon (within 30 days) and has been restricted for safety.</p>
+                                <div className="bg-orange-50 border border-orange-100 rounded-xl p-3 text-center text-sm">
+                                    <p className="text-orange-700 font-bold flex items-center justify-center gap-2"><ShieldOff size={16}/> Unavailable</p>
+                                    <p className="text-orange-600 text-xs mt-1">Short expiry batch restricted.</p>
                                 </div>
                              ) : (
                                 <>
                                     <button 
                                         onClick={handleAddToCart}
-                                        className={`w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-bold transition-all ${
+                                        disabled={totalTabletsOrdered === 0}
+                                        className={`w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold transition-all ${
                                             added ? 'bg-pastel-secondary text-white' : 'bg-pastel-blue text-pastel-primary hover:bg-pastel-mint'
-                                        }`}
+                                        } disabled:opacity-50 disabled:cursor-not-allowed`}
                                     >
-                                        {added ? <CheckCircle2 size={20}/> : <ShoppingCart size={20} />}
+                                        {added ? <CheckCircle2 size={18}/> : <ShoppingCart size={18} />}
                                         {added ? 'Added to Cart' : 'Add to Cart'}
                                     </button>
                                     <button 
                                         onClick={handleBuyNow}
-                                        className="w-full flex items-center justify-center gap-2 bg-pastel-primary text-white py-4 rounded-2xl font-bold hover:bg-pastel-secondary transition-all shadow-xl shadow-teal-500/20 transform hover:-translate-y-0.5"
+                                        disabled={totalTabletsOrdered === 0}
+                                        className="w-full flex items-center justify-center gap-2 bg-pastel-primary text-white py-3.5 rounded-xl font-bold hover:bg-pastel-secondary transition-all shadow-lg shadow-teal-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
-                                        <Zap size={20} /> Buy Now
+                                        <Zap size={18} /> Buy Now
                                     </button>
-                                    <p className="text-xs text-center text-gray-400 mt-2">
-                                        Free delivery on orders above ₹200
-                                    </p>
                                 </>
                              )}
                         </div>
                     ) : (
-                        <div className="bg-pastel-blue/30 p-6 rounded-2xl text-center border border-pastel-blue/50">
-                            <p className="text-sm font-bold text-pastel-primary mb-2">Login to purchase</p>
-                            <p className="text-xs text-gray-500">Access exclusive generic prices</p>
+                        <div className="bg-gray-50 p-4 rounded-xl text-center border border-gray-100">
+                            <p className="text-sm font-bold text-gray-600 mb-1">Login to Order</p>
+                            <p className="text-xs text-gray-400">Unlock these bulk savings instantly.</p>
                         </div>
                     )}
                 </div>
@@ -223,8 +301,8 @@ const MedicineDetailPage: React.FC = () => {
       {isAuthenticated && (
         <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 z-40 flex items-center gap-4 shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.1)]">
             <div className="flex-1 pl-2">
-                <div className="text-xs text-gray-400 font-bold uppercase tracking-wider">Total</div>
-                <div className="text-2xl font-bold text-pastel-primary">₹{medicine.genericPrice}</div>
+                <div className="text-xs text-gray-400 font-bold uppercase tracking-wider">Total ({totalTabletsOrdered} tabs)</div>
+                <div className="text-2xl font-bold text-pastel-primary">₹{finalPrice.toFixed(2)}</div>
             </div>
             {isExpiringSoon ? (
                 <button disabled className="flex-1 bg-gray-300 text-white py-3.5 rounded-xl font-bold cursor-not-allowed flex items-center justify-center gap-2">
@@ -233,7 +311,8 @@ const MedicineDetailPage: React.FC = () => {
             ) : (
                 <button 
                     onClick={handleBuyNow}
-                    className="flex-1 bg-pastel-primary text-white py-3.5 rounded-xl font-bold shadow-lg shadow-teal-500/20 flex items-center justify-center gap-2"
+                    disabled={totalTabletsOrdered === 0}
+                    className="flex-1 bg-pastel-primary text-white py-3.5 rounded-xl font-bold shadow-lg shadow-teal-500/20 flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                     <Zap size={18} /> Buy Now
                 </button>

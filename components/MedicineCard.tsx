@@ -48,7 +48,8 @@ const MedicineCard: React.FC<MedicineCardProps> = ({ medicine }) => {
     e.stopPropagation();
     if (isExpiringSoon) return;
     
-    addToCart(medicine);
+    // Add 1 strip (e.g., 10 or 15 tablets)
+    addToCart(medicine, medicine.stripSize);
     setIsAdded(true);
     setTimeout(() => setIsAdded(false), 2000);
   };
@@ -146,7 +147,9 @@ const MedicineCard: React.FC<MedicineCardProps> = ({ medicine }) => {
              </div>
              
              <div className="pt-4 border-t border-gray-50 flex justify-between items-center">
-                <span className="text-xs text-gray-400 font-medium">Generic Price: <span className="text-pastel-dark font-bold text-sm">₹{medicine.genericPrice}</span></span>
+                <span className="text-xs text-gray-400 font-medium">
+                  Generic Price: <span className="text-pastel-dark font-bold text-sm">₹{medicine.genericPrice}</span> <span className="text-[10px] text-gray-400">/ {medicine.stripSize} tabs</span>
+                </span>
                 <div className="flex items-center text-pastel-primary text-xs font-bold group/btn">
                     Details <ArrowRight size={14} className="ml-1 group-hover/btn:translate-x-1 transition-transform" />
                 </div>

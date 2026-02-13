@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Medicine } from '../../types';
 import { Check, AlertTriangle, Info, Pill, Wallet, Lock, Store, Scale } from 'lucide-react';
@@ -110,7 +111,7 @@ export const PriceComparisonBlock: React.FC<{ medicine: Medicine }> = ({ medicin
                       </td>
                     </tr>
                      <tr className="bg-gray-50/50">
-                      <td className="px-4 py-3 text-gray-600 font-bold">Price per strip</td>
+                      <td className="px-4 py-3 text-gray-600 font-bold">Price per strip ({medicine.stripSize} tabs)</td>
                       <td className="px-4 py-3 text-green-600 bg-green-50/30 border-l border-r border-green-100 text-center font-extrabold text-lg">
                         ₹{medicine.genericPrice}
                       </td>

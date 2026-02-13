@@ -1,10 +1,42 @@
 
 import React, { useState, useEffect } from 'react';
-import { Check, Package, Truck, Phone, Home, Clock, User, Box, Loader2, AlertCircle, Search, Bell, MessageCircle, Smartphone, ShoppingBag, Store, ChevronRight, Calendar } from 'lucide-react';
+import { Check, Package, Truck, Phone, Home, Clock, User, Box, Loader2, AlertCircle, Search, Bell, MessageCircle, Smartphone, ShoppingBag, Store, ChevronRight, Calendar, History } from 'lucide-react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { db } from '../services/db';
 import { Order } from '../types';
 import { useAuth } from '../context/AuthContext';
+
+// Extracted OrderCard to resolve TypeScript 'key' prop issue and avoid re-creation on render
+const OrderCard: React.FC<{ o: Order }> = ({ o }) => {
+    const navigate = useNavigate();
+    return (
+        <div 
+            onClick={() => navigate(`/track-order?orderId=${o.id}`)} 
+            className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between cursor-pointer hover:border-pastel-primary transition-all hover:shadow-md group"
+        >
+            <div className="flex items-center gap-4">
+                <div className={`p-3 rounded-xl transition-colors ${o.status !== 'delivered' ? 'bg-pastel-blue/20 text-pastel-primary' : 'bg-gray-50 text-gray-400'}`}>
+                    {o.status !== 'delivered' ? <Truck size={20} /> : <Package size={20} />}
+                </div>
+                <div>
+                    <div className="flex items-center gap-2">
+                        <span className="font-bold text-gray-800 text-sm">#{o.id}</span>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                            o.status === 'delivered' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+                        }`}>
+                            {o.status.replace('_', ' ')}
+                        </span>
+                    </div>
+                    <div className="flex items-center gap-3 text-xs text-gray-500 mt-1">
+                        <span className="flex items-center gap-1"><Calendar size={10} /> {new Date(o.createdAt).toLocaleDateString()}</span>
+                        <span className="font-medium text-gray-700">₹{o.totalAmount}</span>
+                    </div>
+                </div>
+            </div>
+            <ChevronRight size={18} className="text-gray-300 group-hover:text-pastel-primary" />
+        </div>
+    );
+};
 
 const OrderTrackingPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -87,12 +119,15 @@ const OrderTrackingPage: React.FC = () => {
 
   // --- CASE: NO ORDER ID (SEARCH VIEW + ACTIVE ORDERS) ---
   if (!order) {
+    const liveOrders = myOrders.filter(o => o.status !== 'delivered');
+    const pastOrders = myOrders.filter(o => o.status === 'delivered');
+
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-start p-4 pt-10 sm:pt-20">
-        <div className="w-full max-w-md space-y-8 animate-slide-up">
+        <div className="w-full max-w-6xl space-y-8 animate-slide-up">
             
-            {/* Search Box */}
-            <div className="bg-white p-8 rounded-3xl shadow-xl shadow-pastel-primary/5 border border-gray-100">
+            {/* Search Box - Centered and limited width */}
+            <div className="max-w-md mx-auto bg-white p-8 rounded-3xl shadow-xl shadow-pastel-primary/5 border border-gray-100">
                 <div className="flex justify-center mb-6">
                     <div className="bg-pastel-blue/30 p-4 rounded-full">
                         <Truck className="text-pastel-primary w-10 h-10" />
@@ -124,51 +159,55 @@ const OrderTrackingPage: React.FC = () => {
                 </form>
             </div>
 
-            {/* Active Orders List */}
-            {isAuthenticated && myOrders.length > 0 && (
-                <div className="animate-fade-in">
-                    <h3 className="text-lg font-bold text-gray-800 mb-4 px-2">Your Recent Orders</h3>
-                    <div className="space-y-3">
-                        {myOrders.map(o => (
-                            <div 
-                                key={o.id} 
-                                onClick={() => navigate(`/track-order?orderId=${o.id}`)} 
-                                className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between cursor-pointer hover:border-pastel-primary transition-all hover:shadow-md group"
-                            >
-                                <div className="flex items-center gap-4">
-                                    <div className="bg-gray-50 p-3 rounded-xl group-hover:bg-pastel-blue/20 transition-colors">
-                                        <Package size={20} className="text-gray-400 group-hover:text-pastel-primary" />
-                                    </div>
-                                    <div>
-                                        <div className="flex items-center gap-2">
-                                            <span className="font-bold text-gray-800 text-sm">#{o.id}</span>
-                                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
-                                                o.status === 'delivered' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
-                                            }`}>
-                                                {o.status.replace('_', ' ')}
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center gap-3 text-xs text-gray-500 mt-1">
-                                            <span className="flex items-center gap-1"><Calendar size={10} /> {new Date(o.createdAt).toLocaleDateString()}</span>
-                                            <span className="font-medium text-gray-700">₹{o.totalAmount}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <ChevronRight size={18} className="text-gray-300 group-hover:text-pastel-primary" />
-                            </div>
-                        ))}
-                    </div>
+            {/* Split Order History Blocks - Side by Side Grid */}
+            {isAuthenticated && (myOrders.length > 0) && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start animate-fade-in">
+                    
+                    {/* Live Orders Block */}
+                    {liveOrders.length > 0 && (
+                        <div className="bg-white/50 p-6 rounded-3xl border border-gray-100/50">
+                             <h3 className="text-lg font-bold text-gray-800 mb-4 px-2 flex items-center gap-2">
+                                <span className="relative flex h-3 w-3">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pastel-secondary opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full h-3 w-3 bg-pastel-secondary"></span>
+                                </span>
+                                Live Orders
+                             </h3>
+                             <div className="space-y-3">
+                                {liveOrders.map(o => <OrderCard key={o.id} o={o} />)}
+                             </div>
+                        </div>
+                    )}
+
+                    {/* Previous Orders Block */}
+                    {pastOrders.length > 0 && (
+                        <div className={`bg-white/50 p-6 rounded-3xl border border-gray-100/50 ${liveOrders.length === 0 ? 'md:col-span-2 max-w-md mx-auto w-full' : ''}`}>
+                             <h3 className="text-lg font-bold text-gray-500 mb-4 px-2 flex items-center gap-2">
+                                <History size={18} /> Previous Orders
+                             </h3>
+                             <div className="space-y-3 opacity-90 max-h-[600px] overflow-y-auto custom-scrollbar pr-2">
+                                {pastOrders.map(o => <OrderCard key={o.id} o={o} />)}
+                             </div>
+                        </div>
+                    )}
+
                 </div>
             )}
             
+            {isAuthenticated && myOrders.length === 0 && (
+                 <div className="text-center mt-6 p-4 bg-gray-100 rounded-2xl max-w-md mx-auto">
+                    <p className="text-sm text-gray-500">You haven't placed any orders yet.</p>
+                 </div>
+            )}
+
             {!isAuthenticated && (
-                <div className="text-center mt-6 p-4 bg-blue-50/50 rounded-2xl border border-blue-100">
+                <div className="text-center mt-6 p-4 bg-blue-50/50 rounded-2xl border border-blue-100 max-w-md mx-auto">
                     <p className="text-sm text-gray-600 mb-2">Login to see your recent orders here.</p>
                     <Link to="/" className="text-sm font-bold text-pastel-primary hover:underline">Go to Home</Link>
                 </div>
             )}
 
-            <div className="mt-8 pt-6 border-t border-gray-100 text-center">
+            <div className="mt-8 pt-6 border-t border-gray-100 text-center max-w-md mx-auto">
                 <p className="text-xs text-gray-400">
                     Need help? <Link to="/" className="text-pastel-primary hover:underline">Contact Support</Link>
                 </p>

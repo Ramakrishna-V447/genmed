@@ -16,6 +16,7 @@ export const MEDICINES: Medicine[] = [
     brandExample: 'Dolo 650 / Crocin',
     saltComposition: 'Paracetamol (Acetaminophen) IP 650mg',
     batchNumber: 'PCM-2023-001',
+    stripSize: 15,
     category: MedicineCategory.FEVER,
     commonUse: ['Fever', 'Mild Pain', 'Headache'],
     description: 'The most common medicine in India for fever and body ache. Safe for most adults when taken correctly.',
@@ -48,6 +49,7 @@ export const MEDICINES: Medicine[] = [
     brandExample: 'Pan 40 / Pantocid',
     saltComposition: 'Pantoprazole Sodium IP 40mg (Enteric Coated)',
     batchNumber: 'PAN-23-X89',
+    stripSize: 15,
     category: MedicineCategory.ACIDITY,
     commonUse: ['Acidity', 'Heartburn', 'GERD', 'Gastritis'],
     description: 'Effective for acidity and gas issues, often prescribed for acid reflux and stomach ulcers.',
@@ -80,6 +82,7 @@ export const MEDICINES: Medicine[] = [
     brandExample: 'Cetzine / Okacet',
     saltComposition: 'Cetirizine Hydrochloride IP 10mg',
     batchNumber: 'CET-OLD-01',
+    stripSize: 10,
     category: MedicineCategory.ALLERGY,
     commonUse: ['Allergy', 'Running Nose', 'Sneezing', 'Itching'],
     description: 'Non-drowsy anti-allergic for seasonal allergies, hives, and skin rashes.',
@@ -111,6 +114,7 @@ export const MEDICINES: Medicine[] = [
     brandExample: 'Emeset 4 / Vomikind',
     saltComposition: 'Ondansetron IP 4mg',
     batchNumber: 'OND-25-A01',
+    stripSize: 10,
     category: MedicineCategory.ACIDITY,
     commonUse: ['Nausea', 'Vomiting', 'Motion Sickness'],
     description: 'Effective anti-emetic medicine used to prevent nausea and vomiting caused by chemotherapy or surgery.',
@@ -141,15 +145,16 @@ export const MEDICINES: Medicine[] = [
     brandExample: 'Thyronorm 50',
     saltComposition: 'Thyroxine Sodium IP 50mcg',
     batchNumber: 'THY-25-B99',
+    stripSize: 100, // Standard Bottle Size
     category: MedicineCategory.SUPPLEMENTS, // Broadly fits here or a new category
     commonUse: ['Hypothyroidism', 'Thyroid deficiency'],
     description: 'Synthetic thyroid hormone to replace what the body is not producing.',
-    genericPrice: 45.00,
+    genericPrice: 55.00,
     brandedPrice: 130.00,
     stock: 150,
     expiryDate: getFutureDate(500),
     marketRates: [
-        { shopName: 'Jan Aushadhi', price: 45.00, type: 'Generic' },
+        { shopName: 'Jan Aushadhi', price: 55.00, type: 'Generic' },
         { shopName: 'Local Chemist', price: 130.00, type: 'Branded' }
     ],
     imageUrl: 'https://images.unsplash.com/photo-1628771065518-0d82f1938462?auto=format&fit=crop&q=80&w=800',
@@ -171,6 +176,7 @@ export const MEDICINES: Medicine[] = [
     brandExample: 'Udiliv 300',
     saltComposition: 'Ursodeoxycholic Acid IP 300mg',
     batchNumber: 'UDC-25-L88',
+    stripSize: 15,
     category: MedicineCategory.ACIDITY, // Digestive health
     commonUse: ['Liver Health', 'Gallstones'],
     description: 'Hepatoprotective medicine used to dissolve gallstones and improve liver function.',
@@ -201,6 +207,7 @@ export const MEDICINES: Medicine[] = [
     brandExample: 'Candiforce 100',
     saltComposition: 'Itraconazole IP 100mg',
     batchNumber: 'ITR-25-F77',
+    stripSize: 10,
     category: MedicineCategory.ANTIBIOTIC, // Antifungal
     commonUse: ['Fungal Infection', 'Ringworm', 'Nail Infection'],
     description: 'Potent antifungal medication used for treating various fungal infections.',
@@ -231,6 +238,7 @@ export const MEDICINES: Medicine[] = [
     brandExample: 'Shelcal 500',
     saltComposition: 'Calcium Carbonate 500mg + Vitamin D3 250 IU',
     batchNumber: 'CAL-OLD-88',
+    stripSize: 15,
     category: MedicineCategory.SUPPLEMENTS,
     commonUse: ['Bone Health', 'Calcium Deficiency'],
     description: 'Clearance stock: Essential supplement for strong bones.',
@@ -249,6 +257,7 @@ export const MEDICINES: Medicine[] = [
     brandExample: 'Meftal 500',
     saltComposition: 'Mefenamic Acid IP 500mg',
     batchNumber: 'MEF-25-P22',
+    stripSize: 10,
     category: MedicineCategory.PAIN,
     commonUse: ['Period Pain', 'Dental Pain', 'Muscle Pain'],
     description: 'NSAID used for short-term relief of mild to moderate pain.',
@@ -267,6 +276,7 @@ export const MEDICINES: Medicine[] = [
     brandExample: 'Galvus 50',
     saltComposition: 'Vildagliptin IP 50mg',
     batchNumber: 'VIL-25-D11',
+    stripSize: 14, // 14 is standard for Galvus
     category: MedicineCategory.DIABETES,
     commonUse: ['Type 2 Diabetes'],
     description: 'DPP-4 inhibitor used to improve blood sugar control.',
@@ -285,6 +295,7 @@ export const MEDICINES: Medicine[] = [
     brandExample: 'Plavix / Clavix',
     saltComposition: 'Clopidogrel Bisulfate IP 75mg',
     batchNumber: 'CLO-25-H33',
+    stripSize: 15,
     category: MedicineCategory.HEART,
     commonUse: ['Heart Attack Prevention', 'Stroke Prevention'],
     description: 'Antiplatelet medicine to prevent blood clots.',
@@ -303,6 +314,7 @@ export const MEDICINES: Medicine[] = [
     brandExample: 'Azithral 500',
     saltComposition: 'Azithromycin IP 500mg',
     batchNumber: 'AZI-OLD-99',
+    stripSize: 5,
     category: MedicineCategory.ANTIBIOTIC,
     commonUse: ['Throat Infection'],
     description: 'Antibiotic stock clearing out.',
@@ -321,6 +333,7 @@ export const MEDICINES: Medicine[] = [
     brandExample: 'Asthalin LS',
     saltComposition: 'Levosalbutamol 1mg/5ml',
     batchNumber: 'LEV-25-R44',
+    stripSize: 1, // Bottle count
     category: MedicineCategory.COLD_FLU, // Respiratory
     commonUse: ['Asthma', 'Bronchitis', 'Cough'],
     description: 'Bronchodilator used to relieve coughing and shortness of breath.',
@@ -340,6 +353,7 @@ export const MEDICINES: Medicine[] = [
     brandExample: 'Azithral 500',
     saltComposition: 'Azithromycin IP 500mg',
     batchNumber: 'AZI-23-M55',
+    stripSize: 5, // Corrected from 3 to 5 (Standard Strip)
     category: MedicineCategory.ANTIBIOTIC,
     commonUse: ['Throat Infection', 'Bacterial Infection', 'Typhoid'],
     description: 'A macrolide antibiotic used for respiratory, throat, and skin infections.',
@@ -370,6 +384,7 @@ export const MEDICINES: Medicine[] = [
     brandExample: 'Glycomet 500',
     saltComposition: 'Metformin Hydrochloride IP 500mg',
     batchNumber: 'MET-24-D99',
+    stripSize: 10, // Corrected from 20 to 10
     category: MedicineCategory.DIABETES,
     commonUse: ['Type 2 Diabetes', 'Blood Sugar Control'],
     description: 'Standard first-line medication for the treatment of type 2 diabetes mellitus.',
