@@ -48,19 +48,6 @@
         },
       }
     </script>
-  <script type="importmap">
-{
-  "imports": {
-    "react/": "https://esm.sh/react@^19.2.4/",
-    "react": "https://esm.sh/react@^19.2.4",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
-    "react-dom": "https://esm.sh/react-dom@^19.2.4",
-    "@google/genai": "https://esm.sh/@google/genai@^1.40.0",
-    "lucide-react": "https://esm.sh/lucide-react@^0.563.0",
-    "react-router-dom": "https://esm.sh/react-router-dom@^7.13.0"
-  }
-}
-</script>
 <style>
   /* Custom Scrollbar for lighter look */
   ::-webkit-scrollbar {
@@ -82,8 +69,10 @@
     filter: brightness(1.05) saturate(0.95);
   }
 </style>
+<link rel="stylesheet" href="/index.css">
 </head>
   <body class="bg-pastel-background text-pastel-text antialiased selection:bg-pastel-primary selection:text-white dark:bg-slate-900 dark:text-slate-100 transition-colors duration-300">
     <div id="root"></div>
-  </body>
+  <script type="module" src="/index.tsx"></script>
+</body>
 </html>

@@ -1,40 +1,12 @@
-# GenMed
+<div align="center">
+<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+</div>
 
-**GenMed** is a generic starter project based on an AI Studio template that lets you run and deploy a frontend application locally or via AI Studio. [oai_citation:0‡GitHub](https://github.com/Ramakrishna-V447/genmed)
+# Run and deploy your AI Studio app
 
----
+This contains everything you need to run your app locally.
 
-## 🚀 Overview
-
-This project is built using modern web tooling and serves as a base to build your own application. It includes all essential configuration for bundling, development, and deployment. [oai_citation:1‡GitHub](https://github.com/Ramakrishna-V447/genmed)
-
----
-
-## 📦 Features
-
-- 🧩 Pre-configured frontend environment
-- ⚡ Typescript support
-- 📄 Component structure ready for expansion
-- 🔌 Integration points for custom services
-- 🚀 Ready to run in local dev or hosted via AI Studio
-
----
-
-## 🧠 Tech Stack
-
-| Technology | Purpose |
-|------------|---------|
-| **Node.js** | Runtime environment |
-| **Vite** | Development build tool |
-| **React (or JSX/TSX)** | UI library |
-| **TypeScript** | Strong-typed code |
-| **AI Studio template** | Starter structure | [oai_citation:2‡GitHub](https://github.com/Ramakrishna-V447/genmed)
-
----
-
-## 📁 Project Structure
-
-View your app in AI Studio: https://ai.studio/apps/drive/1BrgIlkCU6eTiSkftrpccIntrNICsyI7t
+View your app in AI Studio: https://ai.studio/apps/f5b9431d-f973-4934-9300-b23b5ba9fb94
 
 ## Run Locally
 
